@@ -1,7 +1,7 @@
 import pytest
 import yaml
 
-from insights_ansible_playbook_lib import serialization
+from rhc_playbook_lib import serialization
 
 
 class TestPlaybookSerializer:

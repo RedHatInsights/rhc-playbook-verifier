@@ -46,7 +46,7 @@ jobs:
 
       - name: "Generate and set up GPG keys"
         run: |
-          python3 -m insights_ansible_playbook_lib._keygen --directory .
+          python3 -m rhc_playbook_lib._keygen --directory .
           cp -f key.public.gpg insights-core/insights/client/apps/ansible/playbook_verifier/public.gpg
 
       - name: "Sign revocation list and the playbook"
@@ -58,10 +58,10 @@ jobs:
               hash: 40a6e9af448208759bc4ef59b6c678227aae9b3f6291c74a4a8767eefc0a401f
           EOF
 
-          insights-ansible-playbook-signer --key ./key.private.gpg --debug \
+          rhc-playbook-signer --key ./key.private.gpg --debug \
             --playbook revoked.yaml --revocation-list > insights-core/insights/revoked_playbooks.yaml
 
-          insights-ansible-playbook-signer --key ./key.private.gpg --debug \
+          rhc-playbook-signer --key ./key.private.gpg --debug \
             --playbook data/playbooks/document-from-hell.yml > playbook.yml
 
       - name: "Run sanity check"

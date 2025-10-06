@@ -84,7 +84,7 @@ def ephemeral_gpg_keys(tmp_path: pathlib.Path) -> None:
 
 
 @pytest.mark.skipif(
-    shutil.which("insights-ansible-playbook-signer") is None,
+    shutil.which("rhc-playbook-signer") is None,
     reason="verifier is not installed",
 )
 @pytest.mark.parametrize(
@@ -105,7 +105,7 @@ def test_end_to_end(
     """Test that we can sign and verify a playbook."""
     revocation_signing_result = subprocess.run(
         [
-            "insights-ansible-playbook-signer",
+            "rhc-playbook-signer",
             "--playbook",
             DATA_DIRECTORY / "revoked_playbooks.yml",
             "--revocation-list",
@@ -129,7 +129,7 @@ def test_end_to_end(
 
     playbook_signing_result = subprocess.run(
         [
-            "insights-ansible-playbook-signer",
+            "rhc-playbook-signer",
             "--playbook",
             DATA_DIRECTORY / playbook,
             "--key",
@@ -147,7 +147,7 @@ def test_end_to_end(
 
     reading_result = subprocess.run(
         [
-            "insights-ansible-playbook-verifier",
+            "rhc-playbook-verifier",
             "--stdin",
             "--key",
             ephemeral_gpg_keys[1],

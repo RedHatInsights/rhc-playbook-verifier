@@ -23,7 +23,7 @@ Historically, the Verifier has been a Python application shipped via Insights Cl
 ```shell
 # python
 python3 -m pip install -e .[dev]
-cat data/playbooks/... | insights-ansible-playbook-verifier
+cat data/playbooks/... | rhc-playbook-verifier
 ```
 
 ### Testing

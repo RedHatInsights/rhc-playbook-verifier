@@ -10,8 +10,8 @@ import tempfile
 
 import yaml
 
-from insights_ansible_playbook_lib import crypto
-from insights_ansible_playbook_lib.serialization import serialize_play, Loader
+from rhc_playbook_lib import crypto
+from rhc_playbook_lib.serialization import serialize_play, Loader
 
 
 logger = logging.getLogger(__name__)
@@ -21,12 +21,12 @@ VARIABLE_FIELDS: list[str] = ["hosts", "vars"]
 
 
 # Try to use the special /var/lib/ directory.
-if os.geteuid() == 0 and os.path.isdir("/var/lib/insights-ansible-playbook-verifier/"):
-    TEMPORARY_STASH_DIRECTORY = "/var/lib/insights-ansible-playbook-verifier/"
+if os.geteuid() == 0 and os.path.isdir("/var/lib/rhc-playbook-verifier/"):
+    TEMPORARY_STASH_DIRECTORY = "/var/lib/rhc-playbook-verifier/"
     TEMPORARY_STASH_DIRECTORY_PREFIX = "files-"
 else:
     TEMPORARY_STASH_DIRECTORY = "/tmp/"
-    TEMPORARY_STASH_DIRECTORY_PREFIX = "insights-ansible-playbook-verifier-files-"
+    TEMPORARY_STASH_DIRECTORY_PREFIX = "rhc-playbook-verifier-files-"
 
 
 def _configure_logging(debug: bool = False) -> None:

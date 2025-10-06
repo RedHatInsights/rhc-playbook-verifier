@@ -1,1 +1,1 @@
-include python/insights_ansible_playbook_verifier/data/*
+include python/rhc_playbook_verifier/data/*

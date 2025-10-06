@@ -8,7 +8,7 @@ import traceback
 
 import importlib.metadata
 
-import insights_ansible_playbook_lib as lib
+import rhc_playbook_lib as lib
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def read_revocation_playbook_from_package() -> str:
     """Read revocation playbook content saved in the package."""
     data: str = pkgutil.get_data(
-        "insights_ansible_playbook_verifier",
+        "rhc_playbook_verifier",
         "data/revoked_playbooks.yml",
     ).decode("utf-8")  # type: ignore
     return data
@@ -25,7 +25,7 @@ def read_revocation_playbook_from_package() -> str:
 def get_gpg_key_from_package() -> bytes:
     """Read the public GPG key to verify the plays with."""
     data: bytes = pkgutil.get_data(
-        "insights_ansible_playbook_verifier",
+        "rhc_playbook_verifier",
         "data/public.gpg",
     )  # type: ignore
     return data
@@ -34,7 +34,7 @@ def get_gpg_key_from_package() -> bytes:
 def get_version_from_package() -> str:
     """Read the package metadata to obtain version."""
     try:
-        version = importlib.metadata.version("insights-ansible-playbook-verifier")
+        version = importlib.metadata.version("rhc-playbook-verifier")
     except ImportError:
         version = "unknown"
     return version

@@ -1,4 +1,4 @@
-# Contributing to Insights Ansible playbook verifier
+# Contributing to rhc playbook verifier
 
 ## Security
 

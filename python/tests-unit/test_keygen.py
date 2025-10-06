@@ -4,11 +4,11 @@ import tempfile
 
 from unittest import mock
 
-from insights_ansible_playbook_lib import _keygen
+from rhc_playbook_lib import _keygen
 
 
 @mock.patch(
-    "insights_ansible_playbook_lib._keygen.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+    "rhc_playbook_lib._keygen.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
 def test_run_valid_gpg_command():
@@ -31,7 +31,7 @@ def test_run_valid_gpg_command():
 
 
 @mock.patch(
-    "insights_ansible_playbook_lib._keygen.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+    "rhc_playbook_lib._keygen.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
 def test_run_invalid_gpg_command():
@@ -53,7 +53,7 @@ def test_run_invalid_gpg_command():
 
 
 @mock.patch(
-    "insights_ansible_playbook_lib._keygen.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+    "rhc_playbook_lib._keygen.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
 def test_generate_gpg_key_pair():

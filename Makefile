@@ -3,14 +3,14 @@ BUILDROOT?=/etc/mock/default.cfg
 
 .PHONY: build
 build: build-py
-	sed -i "s|Version:.*|Version:  $(VERSION)|" insights-ansible-playbook-verifier.spec
+	sed -i "s|Version:.*|Version:  $(VERSION)|" rhc-playbook-verifier.spec
 	@echo "Built $(VERSION)"
 
 .PHONY: build-py
 build-py:
 	@echo "Building Python package" && \
-	cp data/public.gpg python/insights_ansible_playbook_verifier/data/public.gpg
-	cp data/revoked_playbooks.yml python/insights_ansible_playbook_verifier/data/revoked_playbooks.yml
+	cp data/public.gpg python/rhc_playbook_verifier/data/public.gpg
+	cp data/revoked_playbooks.yml python/rhc_playbook_verifier/data/revoked_playbooks.yml
 	sed -i "s|version = .*|version = $(VERSION)|" setup.cfg
 
 
@@ -44,18 +44,18 @@ check-py:
 .PHONY: tarball
 tarball:
 	mkdir -p "rpm/"
-	rm -rf rpm/insights-ansible-playbook-verifier-$(VERSION).tar.gz
+	rm -rf rpm/rhc-playbook-verifier-$(VERSION).tar.gz
 	git ls-files -z | xargs -0 tar \
 		--create --gzip \
-		--transform "s|^|/insights-ansible-playbook-verifier-$(VERSION)/|" \
-		--file rpm/insights-ansible-playbook-verifier-$(VERSION).tar.gz
+		--transform "s|^|/rhc-playbook-verifier-$(VERSION)/|" \
+		--file rpm/rhc-playbook-verifier-$(VERSION).tar.gz
 
 .PHONY: srpm
 srpm:
 	rpmbuild -bs \
 		--define "_sourcedir `pwd`/rpm" \
 		--define "_srcrpmdir `pwd`/rpm" \
-		insights-ansible-playbook-verifier.spec
+		rhc-playbook-verifier.spec
 
 .PHONY: rpm
 rpm: build tarball srpm
@@ -63,7 +63,7 @@ rpm: build tarball srpm
 		--root $(BUILDROOT) \
 		--rebuild \
 		--resultdir "rpm/" \
-		rpm/insights-ansible-playbook-verifier-*.src.rpm
+		rpm/rhc-playbook-verifier-*.src.rpm
 
 
 .PHONY: clean

@@ -12,10 +12,10 @@ from typing import Optional
 
 import yaml
 
-import insights_ansible_playbook_lib as lib
-from insights_ansible_playbook_lib import crypto
-from insights_ansible_playbook_lib.serialization import CustomYamlDumper
-from insights_ansible_playbook_verifier.app import get_version_from_package
+import rhc_playbook_lib as lib
+from rhc_playbook_lib import crypto
+from rhc_playbook_lib.serialization import CustomYamlDumper
+from rhc_playbook_verifier.app import get_version_from_package
 
 logger = logging.getLogger(__name__)
 

@@ -27,7 +27,7 @@ def test_official_playbook(filename: str):
 
     result = subprocess.run(
         [
-            "insights-ansible-playbook-verifier",
+            "rhc-playbook-verifier",
             "--playbook",
             f"{PLAYBOOK_DIRECTORY / filename}.yml",
             "--debug",

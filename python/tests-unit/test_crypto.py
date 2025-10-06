@@ -7,11 +7,11 @@ import tempfile
 
 from unittest import mock
 
-from insights_ansible_playbook_lib import crypto
-from insights_ansible_playbook_lib import _keygen
+from rhc_playbook_lib import crypto
+from rhc_playbook_lib import _keygen
 
 
-GPG_OWNER = "insights-ansible-playbook-verifier test"
+GPG_OWNER = "rhc-playbook-verifier test"
 
 
 def _initialize_gpg_environment(home):
@@ -75,7 +75,7 @@ def _initialize_gpg_environment(home):
 
 
 @mock.patch(
-    "insights_ansible_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
 def test_valid_signature():
@@ -102,7 +102,7 @@ def test_valid_signature():
 
 
 @mock.patch(
-    "insights_ansible_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
 def test_invalid_signature():
@@ -133,7 +133,7 @@ def test_invalid_signature():
 
 
 @mock.patch(
-    "insights_ansible_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
 @mock.patch("subprocess.Popen")
@@ -162,7 +162,7 @@ def test_invalid_gpg_setup(
 
 
 @mock.patch(
-    "insights_ansible_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
 def test_missing_public_key():
@@ -192,7 +192,7 @@ def test_missing_public_key():
 
 
 @mock.patch(
-    "insights_ansible_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
 def test_invalid_public_key():
@@ -220,7 +220,7 @@ def test_invalid_public_key():
 
 
 @mock.patch(
-    "insights_ansible_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
 def test_missing_signed_file():
@@ -242,7 +242,7 @@ def test_missing_signed_file():
 
 
 @mock.patch(
-    "insights_ansible_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
 def test_missing_signature_file():

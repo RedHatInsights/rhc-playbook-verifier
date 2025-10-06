@@ -1,6 +1,6 @@
-upstream_package_name: insights-ansible-playbook-verifier
-downstream_package_name: insights-ansible-playbook-verifier
-specfile_path: insights-ansible-playbook-verifier.spec
+upstream_package_name: rhc-playbook-verifier
+downstream_package_name: rhc-playbook-verifier
+specfile_path: rhc-playbook-verifier.spec
 
 srpm_build_deps:
   - make
@@ -8,10 +8,10 @@ srpm_build_deps:
 actions:
   create-archive:
     - bash -c "make build tarball VERSION=${PACKIT_PROJECT_VERSION}"
-    - bash -c 'echo rpm/insights-ansible-playbook-verifier-*.tar.*'
+    - bash -c 'echo rpm/rhc-playbook-verifier-*.tar.*'
   fix-spec-file:
     # fill in Release as if packit would have done it
-    - bash -c "sed -i -r \"s/Release:(\s*)\S+/Release:\1${PACKIT_RPMSPEC_RELEASE}%{?dist}/\" insights-ansible-playbook-verifier.spec"
+    - bash -c "sed -i -r \"s/Release:(\s*)\S+/Release:\1${PACKIT_RPMSPEC_RELEASE}%{?dist}/\" rhc-playbook-verifier.spec"
 
 jobs:
   - job: copr_build

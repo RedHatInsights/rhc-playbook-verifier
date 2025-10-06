@@ -2,7 +2,7 @@ import argparse
 import pathlib
 import unittest.mock
 
-import insights_ansible_playbook_verifier.app as verifier
+import rhc_playbook_verifier.app as verifier
 
 
 PLAYBOOKS = pathlib.Path(__file__).parents[2].absolute() / "data" / "playbooks"
@@ -10,7 +10,7 @@ PLAYBOOKS = pathlib.Path(__file__).parents[2].absolute() / "data" / "playbooks"
 
 class TestRun:
     @unittest.mock.patch(
-        "insights_ansible_playbook_verifier.app.argparse.ArgumentParser.parse_args",
+        "rhc_playbook_verifier.app.argparse.ArgumentParser.parse_args",
         unittest.mock.MagicMock(
             return_value=argparse.Namespace(
                 key=None,

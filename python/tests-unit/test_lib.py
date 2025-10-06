@@ -1,7 +1,7 @@
 import pathlib
 import unittest.mock
 
-import insights_ansible_playbook_lib as lib
+import rhc_playbook_lib as lib
 import pytest
 
 
@@ -146,7 +146,7 @@ class TestCreatePlayDigest:
 
 class TestVerifyPlay:
     @unittest.mock.patch(
-        "insights_ansible_playbook_lib.crypto.verify_gpg_signed_file",
+        "rhc_playbook_lib.crypto.verify_gpg_signed_file",
         return_value=unittest.mock.MagicMock(ok=False),
     )
     def test_requires_signature(self, _verify):
@@ -159,7 +159,7 @@ class TestVerifyPlay:
             lib.verify_play(play=raw, gpg_key=b"")
 
     @unittest.mock.patch(
-        "insights_ansible_playbook_lib.crypto.verify_gpg_signed_file",
+        "rhc_playbook_lib.crypto.verify_gpg_signed_file",
         return_value=unittest.mock.MagicMock(ok=False),
     )
     def test_requires_signature_exclude(self, _verify):
@@ -226,7 +226,7 @@ class TestGetRevocationDigests:
         assert actual == expected
 
     @unittest.mock.patch(
-        "insights_ansible_playbook_lib.crypto.verify_gpg_signed_file",
+        "rhc_playbook_lib.crypto.verify_gpg_signed_file",
         return_value=unittest.mock.MagicMock(ok=False),
     )
     def test_bad_signature(self, _):

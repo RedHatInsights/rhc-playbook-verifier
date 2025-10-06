@@ -14,14 +14,12 @@ logger = logging.getLogger(__name__)
 
 # We try to use the special /var/lib/ directory in which gnupg has SELinux
 # permissions to write to.
-if os.geteuid() == 0 and os.path.isdir("/var/lib/insights-ansible-playbook-verifier/"):
-    TEMPORARY_GPG_HOME_PARENT_DIRECTORY = "/var/lib/insights-ansible-playbook-verifier/"
+if os.geteuid() == 0 and os.path.isdir("/var/lib/rhc-playbook-verifier/"):
+    TEMPORARY_GPG_HOME_PARENT_DIRECTORY = "/var/lib/rhc-playbook-verifier/"
     TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX = "gpg-"
 else:
     TEMPORARY_GPG_HOME_PARENT_DIRECTORY = "/tmp/"
-    TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX = (
-        "insights-ansible-playbook-verifier-gpg-"
-    )
+    TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX = "rhc-playbook-verifier-gpg-"
 
 
 @dataclasses.dataclass(frozen=True)

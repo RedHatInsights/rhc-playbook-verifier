@@ -10,15 +10,15 @@ import tempfile
 import textwrap
 import traceback
 
-import insights_ansible_playbook_lib as lib
-from insights_ansible_playbook_lib.crypto import GPGCommandResult
+import rhc_playbook_lib as lib
+from rhc_playbook_lib.crypto import GPGCommandResult
 
 
 logger = logging.getLogger(__name__)
 
 
 TEMPORARY_GPG_HOME_PARENT_DIRECTORY = "/tmp/"
-TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX = "insights-ansible-playbook-verifier-gpg-"
+TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX = "rhc-playbook-verifier-gpg-"
 
 
 def _run_gpg_command(command: list[str], fingerprint: bool = False) -> GPGCommandResult:
@@ -71,7 +71,7 @@ def _generate_keys() -> str:
             Key-Curve: ed25519
             Subkey-Type: ECDH
             Subkey-Curve: cv25519
-            Name-Real: insights-ansible-playbook-verifier test
+            Name-Real: rhc-playbook-verifier test
             Expire-Date: 0
             %no-protection
             %commit
@@ -144,7 +144,7 @@ def _get_fingerprint(gpg_tmp_dir: str, keys_path: str) -> str:
             "--homedir",
             gpg_tmp_dir,
             "--fingerprint",
-            "insights-ansible-playbook-verifier test",
+            "rhc-playbook-verifier test",
         ],
         fingerprint=True,
     )

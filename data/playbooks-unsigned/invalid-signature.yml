@@ -1,0 +1,8 @@
+- name: "Minimal play"
+  hosts: "localhost"
+  vars:
+    insights_signature_exclude: /hosts,/vars/insights_signature
+    insights_signature: SIGNATURE
+  tasks:
+    - ansible.builtin.debug:
+        - msg: "Debug message"

@@ -6,6 +6,9 @@ import pytest
 
 
 PLAYBOOK_DIRECTORY = pathlib.Path(__file__).parents[2].absolute() / "data" / "playbooks"
+UNSIGNED_PLAYBOOK_DIRECTORY = (
+    pathlib.Path(__file__).parents[2].absolute() / "data" / "playbooks-unsigned"
+)
 
 
 @pytest.mark.parametrize(
@@ -43,3 +46,26 @@ def test_official_playbook(filename: str):
     if result.returncode != 0:
         print(result.stderr.strip())
     assert result.stdout.strip() == playbook_content.strip()
+
+
+def test_playbook_with_invalid_signature_fails():
+    """Verify that a playbook with an invalid base64 signature
+    fails with a PreconditionError
+    """
+    result = subprocess.run(
+        [
+            "rhc-playbook-verifier",
+            "--playbook",
+            f"{UNSIGNED_PLAYBOOK_DIRECTORY}/invalid-signature.yml",
+            "--debug",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+        env={**os.environ, "LC_ALL": "C.UTF-8"},
+    )
+
+    assert result.returncode != 0
+    assert "rhc_playbook_lib.PreconditionError" in result.stderr
+    assert "not a valid base64 string" in result.stderr

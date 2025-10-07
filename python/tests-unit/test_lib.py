@@ -203,6 +203,23 @@ class TestVerifyPlaybook:
         ):
             lib.verify_play(parsed_play, gpg_key=GPG_KEY)
 
+    def test_invalid_signature(self):
+        parsed_play = {
+            "name": "bad playbook",
+            "hosts": "localhost",
+            "vars": {
+                "insights_signature_exclude": "/hosts,/vars/insights_signature/",
+                "insights_signature": "SIGNATURE",
+            },
+            "tasks": [],
+        }
+
+        with pytest.raises(
+            lib.PreconditionError,
+            match="not a valid base64 string",
+        ):
+            lib.verify_play(parsed_play, gpg_key=GPG_KEY)
+
 
 class TestGetRevocationDigests:
     def test_ok(self):

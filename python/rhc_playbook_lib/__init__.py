@@ -7,6 +7,7 @@ import os
 import pathlib
 import sys
 import tempfile
+import binascii
 
 import yaml
 
@@ -148,7 +149,12 @@ def verify_play(play: dict, gpg_key: bytes) -> bytes:
     serialized_play: bytes = serialize_play(cleaned_play).encode("utf-8")
     logger.debug(f"Serialized play as {serialized_play!r}")
     digest: bytes = create_play_digest(serialized_play)
-    signature: bytes = base64.b64decode(b64_signature)
+    try:
+        signature: bytes = base64.b64decode(b64_signature)
+    except binascii.Error as e:
+        raise PreconditionError(
+            f"The signature for play '{play_name}' is not a valid base64 string."
+        ) from e
 
     with tempfile.TemporaryDirectory(
         dir=TEMPORARY_STASH_DIRECTORY,

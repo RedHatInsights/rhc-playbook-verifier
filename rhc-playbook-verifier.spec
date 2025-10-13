@@ -34,7 +34,7 @@ playbooks to be used by the verifier.
 %pyproject_wheel
 
 %install
-%pyproject_install rhc_ansible_playbook_lib rhc_ansible_playbook_verifier rhc_playbook_signer
+%pyproject_install rhc_playbook_lib rhc_playbook_verifier rhc_playbook_signer
 mkdir -p %{buildroot}/%{_libexecdir}
 mv %{buildroot}%{_bindir}/%{name} %{buildroot}%{_libexecdir}
 mv %{buildroot}%{_bindir}/rhc-playbook-signer %{buildroot}%{_libexecdir}

@@ -38,7 +38,7 @@ jobs:
           cp -f key.public.gpg \
             /usr/lib/python3.9/site-packages/insights/client/apps/ansible/playbook_verifier/public.gpg
 
-      - name: "Sign revocation list and the playbook"
+      - name: "Sign revocation list"
         run: |
           cat > ./revoked.yaml << EOF
           - name: "Revoked plays"
@@ -51,11 +51,19 @@ jobs:
             --playbook revoked.yaml --revocation-list > \
             /usr/lib/python3.9/site-packages/insights/revoked_playbooks.yaml
 
-          rhc-playbook-signer --key ./key.private.gpg --debug \
-            --playbook data/playbooks/document-from-hell.yml > playbook.yml
-
-      - name: "Run sanity check"
+      - name: "Run sanity checks on signed playbooks"
         run: |
-          mkdir -p /var/lib/insights/
-          cat playbook.yml | python3 \
-            -m insights.client.apps.ansible.playbook_verifier --verbose
+          mkdir -p /var/lib/insights/ ./signed-playbooks/
+
+          for playbook in data/playbooks/*.yml data/playbooks/*.yaml; do
+            if [ -f "$playbook" ]; then
+              fname=$(basename "$playbook")
+
+              echo "Signing $fname using rhc-playbook-signer"
+              rhc-playbook-signer --key ./key.private.gpg --debug \
+                --playbook "$playbook" > "signed-playbooks/$fname"
+
+              echo "Verifying signed $fname using insights-core"
+              cat "signed-playbooks/$fname" | python3 -m insights.client.apps.ansible.playbook_verifier --verbose
+            fi
+          done

@@ -30,17 +30,6 @@ integration-py:
 	PYTHONPATH=python/ pytest python/tests-integration/ -v
 
 
-.PHONY: check
-check: check-py
-	gitleaks git --verbose
-
-.PHONY: check-py
-check-py:
-	ruff check python/
-	ruff format --diff python/
-	mypy
-
-
 .PHONY: tarball
 tarball:
 	mkdir -p "rpm/"

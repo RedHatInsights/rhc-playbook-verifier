@@ -29,8 +29,12 @@ cat data/playbooks/... | rhc-playbook-verifier
 ### Testing
 
 ```shell
-# python
-make check-py
+# lint
+dnf install pre-commit
+pre-commit run -a
+
+# test
+python3 -m pip install -e .[dev]
 make test-py
 make integration-py
 ```

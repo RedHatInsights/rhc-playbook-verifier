@@ -1,20 +1,5 @@
 # Contributing to rhc playbook verifier
 
-## Security
-
-Since we are dealing with PGP, you should ensure you aren't including private key material in your commits. We recommend you to install `gitleaks` package and add it to pre-commit or pre-push script. For example:
-
-```bash
-#!/bin/bash
-set -euo pipefail
-
-gitleaks git --verbose
-make check
-make test
-make integration
-```
-
-
 ## Conventional Commits
 
 When making a contribution, follow the [Conventional Commits](https://www.conventionalcommits.org) guidelines.

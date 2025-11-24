@@ -25,7 +25,7 @@ jobs:
           dnf --setopt install_weak_deps=False install -y python3-pip gpg insights-core
 
       - name: "Checkout the repository"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: "Install as a Python package"
         run: |

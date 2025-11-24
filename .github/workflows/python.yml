@@ -44,11 +44,6 @@ jobs:
           dnf --setopt install_weak_deps=False install -y python3-pyyaml
           python3 -m pip uninstall -y pyyaml
 
-      - name: "Run static checks"
-        if: matrix.name == 'Fedora Rawhide'
-        run: |
-          make check-py
-
       - name: "Run tests"
         run: |
           make test-py

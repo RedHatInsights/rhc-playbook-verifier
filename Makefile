@@ -13,23 +13,6 @@ build-py:
 	cp data/revoked_playbooks.yml python/rhc_playbook_verifier/data/revoked_playbooks.yml
 	sed -i "s|version = .*|version = $(VERSION)|" setup.cfg
 
-
-.PHONY: test
-test: test-py
-
-.PHONY: test-py
-test-py:
-	PYTHONPATH=python/ pytest python/tests-unit/ -v
-
-
-.PHONY: integration
-integration: integration-py
-
-.PHONY: integration-py
-integration-py:
-	PYTHONPATH=python/ pytest python/tests-integration/ -v
-
-
 .PHONY: tarball
 tarball:
 	mkdir -p "rpm/"

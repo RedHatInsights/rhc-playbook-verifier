@@ -28,28 +28,22 @@ def _initialize_gpg_environment(home):
     gpg_tmp_dir = _keygen._generate_keys()
     _keygen._export_key_pair(gpg_tmp_dir, home)
 
-    # Import the public key
+    # Import the public and private keys
     # It is strictly not necessary to import both public and private keys,
     #  the private key should be enough.
     #  However, the Python 2.6 CI image requires that.
-    process = subprocess.Popen(
+    subprocess.run(
         ["/usr/bin/gpg", "--homedir", home, "--import", f"{home}/key.public.gpg"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
+        check=True,
         env={"LC_ALL": "C.UTF-8"},
     )
-    process.communicate()
-    assert process.returncode == 0
-
-    # Import the private key
-    process = subprocess.Popen(
+    subprocess.run(
         ["/usr/bin/gpg", "--homedir", home, "--import", f"{home}/key.private.gpg"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
+        check=True,
         env={"LC_ALL": "C.UTF-8"},
     )
-    process.communicate()
-    assert process.returncode == 0
 
     # Get the fingerprint of the key
     gpg_fingerprint = _keygen._get_fingerprint(gpg_tmp_dir, home)
@@ -59,14 +53,12 @@ def _initialize_gpg_environment(home):
     file = home + "/file.txt"
     with open(file, "w") as f:
         f.write("a signed message")
-    process = subprocess.Popen(
+    subprocess.run(
         ["/usr/bin/gpg", "--homedir", home, "--detach-sign", "--armor", file],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
+        check=True,
         env={"LC_ALL": "C.UTF-8"},
     )
-    process.communicate()
-    assert process.returncode == 0
 
     # Ensure the signature has been created
     assert os.path.exists(home + "/file.txt.asc")

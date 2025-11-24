@@ -8,6 +8,7 @@ import pathlib
 import sys
 import tempfile
 import binascii
+from typing import Any
 
 import yaml
 
@@ -73,10 +74,14 @@ class GPGValidationError(RuntimeError):
     signature: bytes
 
 
-def parse_playbook(playbook: str) -> list[dict]:
+def parse_playbook(playbook: str) -> list[dict[str, Any]]:
     """Parse a raw playbook into a list of plays."""
+    # TODO: How should we handle parse_playbook("not a valid playbook")?
+    #
+    # A playbook is a list of plays, and this functions' return type reflets that. Should this
+    # function raise an exception when passed something else? And should we have a unit test?
     logger.info("Parsing playbook.")
-    content: list[dict] = yaml.load(playbook, Loader=Loader)  # type: ignore
+    content: list[dict[str, Any]] = yaml.load(playbook, Loader=Loader)  # type: ignore
     return content
 
 

@@ -14,15 +14,18 @@ from rhc_playbook_lib import _keygen
 GPG_OWNER = "rhc-playbook-verifier test"
 
 
-def _initialize_gpg_environment(home):
+def _initialize_gpg_environment(home: str) -> str:
     """Save GPG keys and sign a file with them.
 
-    The home directory is populated with the following files:
+    Populate the given (home) directory with the following files:
+
     - key.public.gpg
     - key.private.gpg
     - key.fingerprint.txt
     - file.txt
     - file.txt.asc
+
+    Return the fingerprint of the generated key pair.
     """
     # Generate the keys and save them
     gpg_tmp_dir = _keygen._generate_keys()
@@ -70,7 +73,7 @@ def _initialize_gpg_environment(home):
     "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
-def test_valid_signature():
+def test_valid_signature() -> None:
     """A detached file signature can be verified."""
     home = tempfile.mkdtemp()
     gpg_fingerprint = _initialize_gpg_environment(home)
@@ -90,6 +93,8 @@ def test_valid_signature():
     assert f"Primary key fingerprint: {gpg_fingerprint}" in result.stderr
     assert 0 == result.return_code
 
+    assert result._command
+    assert result._command._home
     assert not os.path.isfile(result._command._home)
 
 
@@ -97,7 +102,7 @@ def test_valid_signature():
     "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
-def test_invalid_signature():
+def test_invalid_signature() -> None:
     """A bad detached file signature can be detected."""
     home = tempfile.mkdtemp()
     gpg_fingerprint = _initialize_gpg_environment(home)
@@ -121,6 +126,8 @@ def test_invalid_signature():
     assert f"Primary key fingerprint: {gpg_fingerprint}" not in result.stderr
     assert 1 == result.return_code
 
+    assert result._command
+    assert result._command._home
     assert not os.path.isfile(result._command._home)
 
 
@@ -133,7 +140,7 @@ def test_invalid_signature():
 def test_invalid_gpg_setup(
     mock_cleanup: mock.MagicMock,
     mock_popen: mock.MagicMock,
-):
+) -> None:
     """An invalid GPG setup can be detected."""
     gpg_command = crypto.GPGCommand(command=[], key=pathlib.Path("/dummy/key"))
 
@@ -157,7 +164,7 @@ def test_invalid_gpg_setup(
     "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
-def test_missing_public_key():
+def test_missing_public_key() -> None:
     """A missing public key can be detected."""
     home = tempfile.mkdtemp()
     _initialize_gpg_environment(home)
@@ -187,7 +194,7 @@ def test_missing_public_key():
     "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
-def test_invalid_public_key():
+def test_invalid_public_key() -> None:
     """An invalid public key can be detected."""
     home = tempfile.mkdtemp()
     _initialize_gpg_environment(home)
@@ -215,7 +222,7 @@ def test_invalid_public_key():
     "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
-def test_missing_signed_file():
+def test_missing_signed_file() -> None:
     """A missing signed file can be detected."""
     home = tempfile.mktemp()
 
@@ -237,7 +244,7 @@ def test_missing_signed_file():
     "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
     "/tmp/",
 )
-def test_missing_signature_file():
+def test_missing_signature_file() -> None:
     """A missing signature file can be detected."""
     home = tempfile.mkdtemp()
     _initialize_gpg_environment(home)

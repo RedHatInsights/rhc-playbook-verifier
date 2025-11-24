@@ -35,7 +35,7 @@ pre-commit run -a
 
 # test
 python3 -m pip install -e .[dev]
-pytest python/tests-unit
+pytest python/tests/unit
 pytest python/tests-integration
 ```
 
@@ -45,7 +45,7 @@ pytest python/tests-integration
 
 ```shell
 # python coverage
-PYTHONPATH=python/ python3 -m coverage run -m pytest python/tests-unit/
+PYTHONPATH=python/ python3 -m coverage run -m pytest python/tests/unit/
 python3 -m coverage report
 python3 -m coverage html
 ```

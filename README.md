@@ -36,7 +36,7 @@ pre-commit run -a
 # test
 python3 -m pip install -e .[dev]
 pytest python/tests/unit
-pytest python/tests-integration
+pytest python/tests/integration
 ```
 
 <details>

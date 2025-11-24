@@ -1,13 +1,13 @@
 import os
-import pathlib
 import subprocess
+from pathlib import Path
 
 import pytest
 
 
-PLAYBOOK_DIRECTORY = pathlib.Path(__file__).parents[2].absolute() / "data" / "playbooks"
+PLAYBOOK_DIRECTORY = Path(__file__).parents[3].absolute() / "data" / "playbooks"
 UNSIGNED_PLAYBOOK_DIRECTORY = (
-    pathlib.Path(__file__).parents[2].absolute() / "data" / "playbooks-unsigned"
+    Path(__file__).parents[3].absolute() / "data" / "playbooks-unsigned"
 )
 
 
@@ -20,7 +20,7 @@ UNSIGNED_PLAYBOOK_DIRECTORY = (
         "bugs",
     ],
 )
-def test_official_playbook(filename: str):
+def test_official_playbook(filename: str) -> None:
     """Test playbook signed by Red Hat's GPG key.
 
     In this test, the official playbooks are verified against the GPG key
@@ -48,7 +48,7 @@ def test_official_playbook(filename: str):
     assert result.stdout.strip() == playbook_content.strip()
 
 
-def test_playbook_with_invalid_signature_fails():
+def test_playbook_with_invalid_signature_fails() -> None:
     """Verify that a playbook with an invalid base64 signature
     fails with a PreconditionError
     """

@@ -1,12 +1,13 @@
 import os
-import pathlib
 import shutil
 import subprocess
 import tempfile
+from pathlib import Path
+from typing import Generator
 
 import pytest
 
-DATA_DIRECTORY = pathlib.Path(__file__).parents[2].absolute() / "data"
+DATA_DIRECTORY = Path(__file__).parents[3].absolute() / "data"
 
 _GPG_INSTRUCTIONS = """
 Key-Type: EDDSA
@@ -21,7 +22,7 @@ Expire-Date: 0
 
 
 @pytest.fixture
-def ephemeral_gpg_keys(tmp_path: pathlib.Path) -> None:
+def ephemeral_gpg_keys(tmp_path: Path) -> Generator[tuple[Path, Path], None, None]:
     """Generate public and private GPG keys.
 
     :yields: Tuple of paths to private and public GPG key.
@@ -99,9 +100,7 @@ def ephemeral_gpg_keys(tmp_path: pathlib.Path) -> None:
         "playbooks-unsigned/sample.yml",
     ],
 )
-def test_end_to_end(
-    ephemeral_gpg_keys: tuple[pathlib.Path, pathlib.Path], playbook: str
-):
+def test_end_to_end(ephemeral_gpg_keys: tuple[Path, Path], playbook: str) -> None:
     """Test that we can sign and verify a playbook."""
     revocation_signing_result = subprocess.run(
         [

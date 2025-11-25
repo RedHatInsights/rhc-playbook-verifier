@@ -1,166 +1,220 @@
+"""Tests for the ``rhc-playbook-signer`` executable."""
+
 import os
-import shutil
+import textwrap
 import subprocess
-import tempfile
+from contextlib import ExitStack
 from pathlib import Path
-from typing import Generator
-
-import pytest
-
-DATA_DIRECTORY = Path(__file__).parents[3].absolute() / "data"
-
-_GPG_INSTRUCTIONS = """
-Key-Type: EDDSA
-  Key-Curve: ed25519
-Subkey-Type: ECDH
-  Subkey-Curve: cv25519
-Name-Real: Integration test key
-Expire-Date: 0
-%no-protection
-%commit
-"""
+from tempfile import NamedTemporaryFile, TemporaryDirectory
+from types import TracebackType
+from typing import Literal, Optional
+from unittest import TestCase
 
 
-@pytest.fixture
-def ephemeral_gpg_keys(tmp_path: Path) -> Generator[tuple[Path, Path], None, None]:
-    """Generate public and private GPG keys.
+class PlaybookTestCase(TestCase):
+    """Execute ``rhc-playbook-signer --playbook=...``."""
 
-    :yields: Tuple of paths to private and public GPG key.
+    def setUp(self) -> None:
+        """Create an exit stack."""
+        self.stack = ExitStack()
+        try:
+            self.key_pair = self.stack.enter_context(KeyPair())
+        except:
+            self.tearDown()
+            raise
+
+    def tearDown(self) -> None:
+        """Destroy the exit stack."""
+        self.stack.close()
+
+    def test_behavior(self) -> None:
+        """Sign and verify a revocation list and playbooks."""
+        data_dir = Path(__file__).parents[3].absolute() / "data"
+
+        # Sign a revocation list, and write it to disk
+        with open(data_dir / "revoked_playbooks.yml") as rev_list_in_fd:
+            rev_list = self._sign_rev_list(rev_list_in_fd.read())
+        with NamedTemporaryFile(
+            mode="xt", prefix="rev-list-", suffix=".yml", delete=False
+        ) as rev_list_out_fd:
+            rev_list_out_path = Path(rev_list_out_fd.name)
+            self.stack.callback(rev_list_out_path.unlink)
+            rev_list_out_fd.write(rev_list)
+
+        # Sign playbooks with rhc-playbook-signer, and verify them with rhc-playbook-verifier and
+        # the revocation list.
+        playbook_paths = (
+            # official production playbooks
+            data_dir / "playbooks" / "insights_remove.yml",
+            # custom playbooks signed by official Red Hat key
+            data_dir / "playbooks" / "bugs.yml",
+            data_dir / "playbooks" / "document-from-hell.yml",
+            # unsigned playbooks
+            data_dir / "playbooks-unsigned" / "sample.yml",
+        )
+        for playbook_path in playbook_paths:
+            with self.subTest(playbook_path=playbook_path):
+                with open(playbook_path) as playbook_fd:
+                    playbook = self._sign_playbook(playbook_fd.read())
+                verified_playbook = self._verify_playbook(playbook, rev_list_out_path)
+                self.assertEqual(playbook.strip(), verified_playbook.strip())
+
+    def _sign_rev_list(self, rev_list: str) -> str:
+        """Sign the given revocation list."""
+        proc = subprocess.run(
+            [
+                "rhc-playbook-signer",
+                "--revocation-list",
+                "--stdin",
+                "--key",
+                self.key_pair.privkey_path,
+                "--debug",
+            ],
+            input=rev_list,
+            capture_output=True,
+            text=True,
+            check=True,
+            env={**os.environ, "LC_ALL": "C.UTF-8"},
+        )
+        return proc.stdout
+
+    def _sign_playbook(self, playbook: str) -> str:
+        """Sign the given playbook, and return stdout."""
+        proc = subprocess.run(
+            [
+                "rhc-playbook-signer",
+                "--stdin",
+                "--key",
+                self.key_pair.privkey_path,
+                "--debug",
+            ],
+            input=playbook,
+            capture_output=True,
+            text=True,
+            check=True,
+            env={**os.environ, "LC_ALL": "C.UTF-8"},
+        )
+        return proc.stdout
+
+    def _verify_playbook(self, signed_playbook: str, rev_list_path: Path) -> str:
+        """Verify the given playbook, and return stdout."""
+        proc = subprocess.run(
+            [
+                "rhc-playbook-verifier",
+                "--stdin",
+                "--key",
+                self.key_pair.pubkey_path,
+                "--revocation-list",
+                rev_list_path,
+                "--debug",
+            ],
+            input=signed_playbook,
+            capture_output=True,
+            text=True,
+            check=True,
+            env={**os.environ, "LC_ALL": "C.UTF-8"},
+        )
+        return proc.stdout
+
+
+class KeyPair:
+    """A GPG key pair.
+
+    When instantiated, a random GPG key pair is generated and written to the filesystem. To ensure
+    clean-up, use as a context manager::
+
+        with KeyPair() as kp:
+            with open(kp.pubkey_path) as pubkey_fd:
+                print(pubkey_fd.read())
+            with open(kp.privkey_path) as privkey_fd:
+                print(privkey_fd.read())
     """
-    # Create fresh GPG keys
-    instructions_file = tmp_path / "instructions"
-    instructions_file.write_text(_GPG_INSTRUCTIONS)
-    genkey = subprocess.run(
-        [
-            "gpg",
-            "--batch",
-            "--generate-key",
-            "--pinentry-mode",
-            "loopback",
-            instructions_file,
-        ],
-        input=os.devnull,
-        capture_output=True,
-        check=False,
-        text=True,
-        env={"GNUPGHOME": str(tmp_path)},
-    )
-    print(genkey.stderr)
-    genkey.check_returncode()
 
-    # Save the public key
-    pubkey = subprocess.run(
-        ["gpg", "--export", "--armor"],
-        capture_output=True,
-        check=False,
-        text=True,
-        env={"GNUPGHOME": str(tmp_path)},
-    )
-    print(pubkey.stderr)
-    pubkey.check_returncode()
-    gpg_public = tmp_path / "public.gpg"
-    gpg_public.write_text(pubkey.stdout)
+    def __init__(self) -> None:
+        """Create a key pair, and write them to the filesystem."""
+        gpg_instructions = textwrap.dedent("""\
+            Key-Type: EDDSA
+              Key-Curve: ed25519
+            Subkey-Type: ECDH
+              Subkey-Curve: cv25519
+            Name-Real: Integration test key
+            Expire-Date: 0
+            %no-protection
+            %commit
+            """)
+        with ExitStack() as stack:
+            gpg_home: str = stack.enter_context(TemporaryDirectory(prefix="gpg-home-"))
 
-    # Save the private key
-    privkey = subprocess.run(
-        [
-            "gpg",
-            "--export-secret-keys",
-            "--pinentry-mode",
-            "loopback",
-            "--yes",
-            "--armor",
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
-        env={"GNUPGHOME": str(tmp_path)},
-    )
-    print(privkey.stderr)
-    privkey.check_returncode()
-    gpg_private = tmp_path / "private.gpg"
-    gpg_private.write_text(privkey.stdout)
+            # Create GPG keys
+            instructions_fd = stack.enter_context(
+                NamedTemporaryFile(mode="w+t", suffix=".txt")
+            )
+            instructions_fd.write(gpg_instructions)
+            instructions_fd.flush()
+            subprocess.run(
+                [
+                    "gpg",
+                    "--batch",
+                    "--generate-key",
+                    "--pinentry-mode",
+                    "loopback",
+                    instructions_fd.name,
+                ],
+                input=os.devnull,
+                capture_output=True,
+                check=True,
+                text=True,
+                env={"GNUPGHOME": gpg_home},
+            )
 
-    yield gpg_private, gpg_public
+            # Generate keys
+            pubkey_proc = subprocess.run(
+                ["gpg", "--export", "--armor"],
+                capture_output=True,
+                check=True,
+                text=True,
+                env={"GNUPGHOME": gpg_home},
+            )
+            privkey_proc = subprocess.run(
+                [
+                    "gpg",
+                    "--export-secret-keys",
+                    "--pinentry-mode",
+                    "loopback",
+                    "--yes",
+                    "--armor",
+                ],
+                capture_output=True,
+                check=True,
+                text=True,
+                env={"GNUPGHOME": gpg_home},
+            )
 
+        # Write keys to filesystem
+        with NamedTemporaryFile(
+            mode="xt", prefix="public-", suffix=".gpg", delete=False
+        ) as pubkey_fd:
+            self.pubkey_path = Path(pubkey_fd.name)
+            pubkey_fd.write(pubkey_proc.stdout)
 
-@pytest.mark.skipif(
-    shutil.which("rhc-playbook-signer") is None,
-    reason="verifier is not installed",
-)
-@pytest.mark.parametrize(
-    "playbook",
-    [
-        # official production playbooks
-        "playbooks/insights_remove.yml",
-        # custom playbooks signed by official Red Hat key
-        "playbooks/bugs.yml",
-        "playbooks/document-from-hell.yml",
-        # unsigned playbooks
-        "playbooks-unsigned/sample.yml",
-    ],
-)
-def test_end_to_end(ephemeral_gpg_keys: tuple[Path, Path], playbook: str) -> None:
-    """Test that we can sign and verify a playbook."""
-    revocation_signing_result = subprocess.run(
-        [
-            "rhc-playbook-signer",
-            "--playbook",
-            DATA_DIRECTORY / "revoked_playbooks.yml",
-            "--revocation-list",
-            "--key",
-            ephemeral_gpg_keys[0],
-            "--debug",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-        env={**os.environ, "LC_ALL": "C.UTF-8"},
-    )
-    print(revocation_signing_result.stderr.strip())
-    revocation_signing_result.check_returncode()
-    assert revocation_signing_result.returncode == 0
-    revocation_list_file = tempfile.NamedTemporaryFile(
-        prefix="revocation-list-", suffix=".yml"
-    )
-    with open(revocation_list_file.name, "w") as f:
-        f.write(revocation_signing_result.stdout)
+        with NamedTemporaryFile(
+            mode="xt", prefix="private-", suffix=".gpg", delete=False
+        ) as privkey_fd:
+            self.privkey_path = Path(privkey_fd.name)
+            privkey_fd.write(privkey_proc.stdout)
 
-    playbook_signing_result = subprocess.run(
-        [
-            "rhc-playbook-signer",
-            "--playbook",
-            DATA_DIRECTORY / playbook,
-            "--key",
-            ephemeral_gpg_keys[0],
-            "--debug",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-        env={**os.environ, "LC_ALL": "C.UTF-8"},
-    )
-    print(playbook_signing_result.stderr.strip())
-    playbook_signing_result.check_returncode()
-    assert playbook_signing_result.returncode == 0
+    # typing.Self available in Python 3.11+
+    def __enter__(self) -> "KeyPair":
+        """Return self; no effect until exit."""
+        return self
 
-    reading_result = subprocess.run(
-        [
-            "rhc-playbook-verifier",
-            "--stdin",
-            "--key",
-            ephemeral_gpg_keys[1],
-            "--revocation-list",
-            revocation_list_file.name,
-            "--debug",
-        ],
-        input=playbook_signing_result.stdout,
-        capture_output=True,
-        text=True,
-        check=False,
-        env={**os.environ, "LC_ALL": "C.UTF-8"},
-    )
-    print(reading_result.stderr.strip())
-    reading_result.check_returncode()
-    assert playbook_signing_result.stdout.strip() == reading_result.stdout.strip()
-    assert playbook_signing_result.returncode == 0
+    def __exit__(
+        self,
+        type_: Optional[type[BaseException]],
+        value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> Literal[False]:
+        """Delete public and private keys."""
+        self.pubkey_path.unlink()
+        self.privkey_path.unlink()
+        return False  # Should an exception which occurred be suppressed?

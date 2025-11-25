@@ -5,7 +5,7 @@ import unittest.mock
 import rhc_playbook_verifier.app as verifier
 
 
-PLAYBOOKS = pathlib.Path(__file__).parents[2].absolute() / "data" / "playbooks"
+PLAYBOOKS = pathlib.Path(__file__).parents[3].absolute() / "data" / "playbooks"
 
 
 class TestRun:
@@ -20,5 +20,5 @@ class TestRun:
             )
         ),
     )
-    def test_ok(self):
+    def test_ok(self) -> None:
         verifier.run()

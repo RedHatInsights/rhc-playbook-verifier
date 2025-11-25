@@ -5,10 +5,10 @@ import rhc_playbook_lib as lib
 import pytest
 
 
-DATA = pathlib.Path(__file__).parents[2].absolute() / "data"
+DATA = pathlib.Path(__file__).parents[3].absolute() / "data"
 GPG_KEY = (DATA / "public.gpg").read_bytes()
 REVOKED = (DATA / "revoked_playbooks.yml").read_text()
-PLAYBOOKS = pathlib.Path(__file__).parents[2].absolute() / "data" / "playbooks"
+PLAYBOOKS = pathlib.Path(__file__).parents[3].absolute() / "data" / "playbooks"
 
 
 class TestParsePlaybook:
@@ -17,7 +17,7 @@ class TestParsePlaybook:
     PyYAML seems to be using YAML 1.1 by default, so we have to ensure we parse it correctly.
     """
 
-    def test_all(self):
+    def test_all(self) -> None:
         """Test that all plays loaded if present."""
         raw = "\n".join(
             [
@@ -37,23 +37,19 @@ class TestParsePlaybook:
 
         assert actual == expected
 
-    def test_integers(self):
-        raw = "- [1, 2, 3, 0b1101]"
-        expected = [[1, 2, 3, 13]]
-
+    def test_integers(self) -> None:
+        raw = '- {"numbers": [1, 2, 3, 0b1101]}'
         actual = lib.parse_playbook(raw)
-
+        expected = [{"numbers": [1, 2, 3, 13]}]
         assert actual == expected
 
-    def test_floats(self):
-        raw = "- [1.0, 2.0, 3.0]"
-        expected = [[1.0, 2.0, 3.0]]
-
+    def test_floats(self) -> None:
+        raw = '- {"numbers": [1.0, 2.0, 3.0]}'
         actual = lib.parse_playbook(raw)
-
+        expected = [{"numbers": [1.0, 2.0, 3.0]}]
         assert actual == expected
 
-    def test_true(self):
+    def test_true(self) -> None:
         raw = "- bool: [true, True, TRUE]\n  string: [y, yes, Yes, YES, on, On, ON]"
         expected = [
             {
@@ -68,7 +64,7 @@ class TestParsePlaybook:
 
 
 class TestCleanPlaybook:
-    def test_ok(self):
+    def test_ok(self) -> None:
         raw = {
             "name": "good playbook",
             "hosts": "localhost",
@@ -87,7 +83,7 @@ class TestCleanPlaybook:
         actual: dict = lib.clean_play(raw)
         assert actual == expected
 
-    def test_too_shallow_exclude(self):
+    def test_too_shallow_exclude(self) -> None:
         raw = {"vars": {"insights_signature_exclude": "/"}}
 
         with pytest.raises(
@@ -96,7 +92,7 @@ class TestCleanPlaybook:
         ):
             lib.clean_play(raw)
 
-    def test_too_deep_exclude(self):
+    def test_too_deep_exclude(self) -> None:
         raw = {"vars": {"insights_signature_exclude": "/vars/nested/key"}}
 
         with pytest.raises(
@@ -105,7 +101,7 @@ class TestCleanPlaybook:
         ):
             lib.clean_play(raw)
 
-    def test_forbidden_exclude(self):
+    def test_forbidden_exclude(self) -> None:
         raw = {"vars": {"insights_signature_exclude": "/name"}}
 
         with pytest.raises(
@@ -114,7 +110,7 @@ class TestCleanPlaybook:
         ):
             lib.clean_play(raw)
 
-    def test_missing_simple(self):
+    def test_missing_simple(self) -> None:
         raw = {"vars": {"insights_signature_exclude": "/hosts"}}
 
         with pytest.raises(
@@ -123,7 +119,7 @@ class TestCleanPlaybook:
         ):
             lib.clean_play(raw)
 
-    def test_missing_nested(self):
+    def test_missing_nested(self) -> None:
         raw = {"vars": {"insights_signature_exclude": "/vars/insights_signature"}}
 
         with pytest.raises(
@@ -135,7 +131,7 @@ class TestCleanPlaybook:
 
 class TestCreatePlayDigest:
     @pytest.mark.parametrize("file", ("insights_remove", "document-from-hell"))
-    def test_ok(self, file: str):
+    def test_ok(self, file: str) -> None:
         raw: bytes = (PLAYBOOKS / f"{file}.serialized.bin").read_bytes()
         expected: bytes = (PLAYBOOKS / f"{file}.digest.bin").read_bytes()
 
@@ -149,7 +145,7 @@ class TestVerifyPlay:
         "rhc_playbook_lib.crypto.verify_gpg_signed_file",
         return_value=unittest.mock.MagicMock(ok=False),
     )
-    def test_requires_signature(self, _verify):
+    def test_requires_signature(self, _verify: unittest.mock.MagicMock) -> None:
         raw = {"name": "bad playbook", "tasks": [{"name": "a task"}]}
 
         with pytest.raises(
@@ -162,7 +158,7 @@ class TestVerifyPlay:
         "rhc_playbook_lib.crypto.verify_gpg_signed_file",
         return_value=unittest.mock.MagicMock(ok=False),
     )
-    def test_requires_signature_exclude(self, _verify):
+    def test_requires_signature_exclude(self, _verify: unittest.mock.MagicMock) -> None:
         raw = {
             "name": "bad playbook",
             "vars": {"insights_signature": ""},
@@ -178,7 +174,7 @@ class TestVerifyPlay:
 
 class TestVerifyPlaybook:
     @pytest.mark.parametrize("file", ("insights_remove", "document-from-hell"))
-    def test_ok(self, file: str):
+    def test_ok(self, file: str) -> None:
         raw: str = (PLAYBOOKS / f"{file}.yml").read_text()
         expected: bytes = (PLAYBOOKS / f"{file}.digest.bin").read_bytes()
 
@@ -187,7 +183,7 @@ class TestVerifyPlaybook:
 
         assert digest == expected
 
-    def test_no_signature(self):
+    def test_no_signature(self) -> None:
         parsed_play = {
             "name": "bad playbook",
             "hosts": "localhost",
@@ -203,7 +199,7 @@ class TestVerifyPlaybook:
         ):
             lib.verify_play(parsed_play, gpg_key=GPG_KEY)
 
-    def test_invalid_signature(self):
+    def test_invalid_signature(self) -> None:
         parsed_play = {
             "name": "bad playbook",
             "hosts": "localhost",
@@ -222,7 +218,7 @@ class TestVerifyPlaybook:
 
 
 class TestGetRevocationDigests:
-    def test_ok(self):
+    def test_ok(self) -> None:
         expected = {
             bytes(
                 bytearray.fromhex(
@@ -246,7 +242,7 @@ class TestGetRevocationDigests:
         "rhc_playbook_lib.crypto.verify_gpg_signed_file",
         return_value=unittest.mock.MagicMock(ok=False),
     )
-    def test_bad_signature(self, _):
+    def test_bad_signature(self, _: unittest.mock.MagicMock) -> None:
         """Test that validation failure raises an exception."""
         with pytest.raises(
             lib.GPGValidationError,

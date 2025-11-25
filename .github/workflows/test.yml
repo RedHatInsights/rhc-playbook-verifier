@@ -16,7 +16,7 @@ jobs:
           - "3.9"  # default RHEL 9 interpreter
           - "3.12"  # default RHEL 10 interpreter
         path:
-          - python/tests-unit/
+          - python/tests/unit/
           - python/tests-integration/
     steps:
       - uses: actions/checkout@v6

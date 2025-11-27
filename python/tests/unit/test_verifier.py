@@ -1,6 +1,7 @@
 import argparse
 import pathlib
-import unittest.mock
+
+from unittest import main, mock, TestCase
 
 import rhc_playbook_verifier.app as verifier
 
@@ -8,10 +9,10 @@ import rhc_playbook_verifier.app as verifier
 PLAYBOOKS = pathlib.Path(__file__).parents[3].absolute() / "data" / "playbooks"
 
 
-class TestRun:
-    @unittest.mock.patch(
+class TestVerifier(TestCase):
+    @mock.patch(
         "rhc_playbook_verifier.app.argparse.ArgumentParser.parse_args",
-        unittest.mock.MagicMock(
+        mock.MagicMock(
             return_value=argparse.Namespace(
                 key=None,
                 stdin=None,
@@ -20,5 +21,9 @@ class TestRun:
             )
         ),
     )
-    def test_ok(self) -> None:
+    def test_run_verifier(self) -> None:
         verifier.run()
+
+
+if __name__ == "__main__":
+    main()

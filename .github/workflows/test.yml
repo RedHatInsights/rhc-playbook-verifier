@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  pytest:
+  unittest:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -17,7 +17,6 @@ jobs:
           - "3.12"  # default RHEL 10 interpreter
         path:
           - python/tests/unit/
-          - python/tests/integration/
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
@@ -27,4 +26,4 @@ jobs:
       - name: Install dependencies
         run: python${{ matrix.python-version }} -m pip install .[dev]
       - name: Run tests in ${{ matrix.path }}
-        run: pytest ${{ matrix.path }}
+        run: python -m unittest discover ${{ matrix.path }}

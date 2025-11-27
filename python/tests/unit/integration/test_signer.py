@@ -11,7 +11,7 @@ from typing import Literal, Optional
 from unittest import TestCase
 
 
-class PlaybookTestCase(TestCase):
+class TestSigner(TestCase):
     """Execute ``rhc-playbook-signer --playbook=...``."""
 
     def setUp(self) -> None:
@@ -29,7 +29,7 @@ class PlaybookTestCase(TestCase):
 
     def test_behavior(self) -> None:
         """Sign and verify a revocation list and playbooks."""
-        data_dir = Path(__file__).parents[3].absolute() / "data"
+        data_dir = Path(__file__).parents[4].absolute() / "data"
 
         # Sign a revocation list, and write it to disk
         with open(data_dir / "revoked_playbooks.yml") as rev_list_in_fd:
@@ -76,6 +76,9 @@ class PlaybookTestCase(TestCase):
             check=True,
             env={**os.environ, "LC_ALL": "C.UTF-8"},
         )
+
+        self.assertEqual(0, proc.returncode)
+
         return proc.stdout
 
     def _sign_playbook(self, playbook: str) -> str:
@@ -94,6 +97,9 @@ class PlaybookTestCase(TestCase):
             check=True,
             env={**os.environ, "LC_ALL": "C.UTF-8"},
         )
+
+        self.assertEqual(0, proc.returncode)
+
         return proc.stdout
 
     def _verify_playbook(self, signed_playbook: str, rev_list_path: Path) -> str:
@@ -114,6 +120,9 @@ class PlaybookTestCase(TestCase):
             check=True,
             env={**os.environ, "LC_ALL": "C.UTF-8"},
         )
+
+        self.assertEqual(0, proc.returncode)
+
         return proc.stdout
 
 
@@ -132,7 +141,8 @@ class KeyPair:
 
     def __init__(self) -> None:
         """Create a key pair, and write them to the filesystem."""
-        gpg_instructions = textwrap.dedent("""\
+        gpg_instructions = textwrap.dedent(
+            """\
             Key-Type: EDDSA
               Key-Curve: ed25519
             Subkey-Type: ECDH
@@ -141,7 +151,8 @@ class KeyPair:
             Expire-Date: 0
             %no-protection
             %commit
-            """)
+            """
+        )
         with ExitStack() as stack:
             gpg_home: str = stack.enter_context(TemporaryDirectory(prefix="gpg-home-"))
 
@@ -153,7 +164,7 @@ class KeyPair:
             instructions_fd.flush()
             subprocess.run(
                 [
-                    "gpg",
+                    "/usr/bin/gpg",
                     "--batch",
                     "--generate-key",
                     "--pinentry-mode",
@@ -169,7 +180,7 @@ class KeyPair:
 
             # Generate keys
             pubkey_proc = subprocess.run(
-                ["gpg", "--export", "--armor"],
+                ["/usr/bin/gpg", "--export", "--armor"],
                 capture_output=True,
                 check=True,
                 text=True,
@@ -177,7 +188,7 @@ class KeyPair:
             )
             privkey_proc = subprocess.run(
                 [
-                    "gpg",
+                    "/usr/bin/gpg",
                     "--export-secret-keys",
                     "--pinentry-mode",
                     "loopback",

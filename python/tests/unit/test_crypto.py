@@ -1,11 +1,11 @@
 import os.path
 import pathlib
-import pytest
 import shutil
 import subprocess
 import tempfile
+import uuid
 
-from unittest import mock
+from unittest import main, mock, TestCase
 
 from rhc_playbook_lib import crypto
 from rhc_playbook_lib import _keygen
@@ -14,255 +14,264 @@ from rhc_playbook_lib import _keygen
 GPG_OWNER = "rhc-playbook-verifier test"
 
 
-def _initialize_gpg_environment(home: str) -> str:
-    """Save GPG keys and sign a file with them.
+class TestCrypto(TestCase):
+    __home = ""
+    __gpg_fingerprint = None
 
-    Populate the given (home) directory with the following files:
+    def tearDown(self) -> None:
+        if self.__home != "":
+            shutil.rmtree(self.__home, ignore_errors=True)
+            self.__home = ""
+            self.__gpg_fingerprint = None
 
-    - key.public.gpg
-    - key.private.gpg
-    - key.fingerprint.txt
-    - file.txt
-    - file.txt.asc
+    def setUp(self) -> None:
+        """Save GPG keys and sign a file with them.
 
-    Return the fingerprint of the generated key pair.
-    """
-    # Generate the keys and save them
-    gpg_tmp_dir = _keygen._generate_keys()
-    _keygen._export_key_pair(gpg_tmp_dir, home)
+        Populate the given (home) directory with the following files:
 
-    # Import the public and private keys
-    # It is strictly not necessary to import both public and private keys,
-    #  the private key should be enough.
-    #  However, the Python 2.6 CI image requires that.
-    subprocess.run(
-        ["/usr/bin/gpg", "--homedir", home, "--import", f"{home}/key.public.gpg"],
-        capture_output=True,
-        check=True,
-        env={"LC_ALL": "C.UTF-8"},
-    )
-    subprocess.run(
-        ["/usr/bin/gpg", "--homedir", home, "--import", f"{home}/key.private.gpg"],
-        capture_output=True,
-        check=True,
-        env={"LC_ALL": "C.UTF-8"},
-    )
+        - key.public.gpg
+        - key.private.gpg
+        - key.fingerprint.txt
+        - file.txt
+        - file.txt.asc
 
-    # Get the fingerprint of the key
-    gpg_fingerprint = _keygen._get_fingerprint(gpg_tmp_dir, home)
-    assert os.path.exists(home + "/key.fingerprint.txt")
+        It stores the fingerprint of the generated key pair and home directory in attributes.
+        """
+        self.__home = tempfile.mkdtemp()
+        # Generate the keys and save them
+        gpg_tmp_dir = _keygen._generate_keys()
+        _keygen._export_key_pair(gpg_tmp_dir, self.__home)
 
-    # Create a file and sign it
-    file = home + "/file.txt"
-    with open(file, "w") as f:
-        f.write("a signed message")
-    subprocess.run(
-        ["/usr/bin/gpg", "--homedir", home, "--detach-sign", "--armor", file],
-        capture_output=True,
-        check=True,
-        env={"LC_ALL": "C.UTF-8"},
-    )
-
-    # Ensure the signature has been created
-    assert os.path.exists(home + "/file.txt.asc")
-
-    return gpg_fingerprint
-
-
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
-def test_valid_signature() -> None:
-    """A detached file signature can be verified."""
-    home = tempfile.mkdtemp()
-    gpg_fingerprint = _initialize_gpg_environment(home)
-
-    # Run the test
-    result = crypto.verify_gpg_signed_file(
-        file=pathlib.Path(home) / "file.txt",
-        signature=pathlib.Path(home) / "file.txt.asc",
-        key=pathlib.Path(home) / "key.public.gpg",
-    )
-    shutil.rmtree(home, ignore_errors=True)
-
-    # Verify results
-    assert True is result.ok
-    assert "" == result.stdout
-    assert f'gpg: Good signature from "{GPG_OWNER}"' in result.stderr
-    assert f"Primary key fingerprint: {gpg_fingerprint}" in result.stderr
-    assert 0 == result.return_code
-
-    assert result._command
-    assert result._command._home
-    assert not os.path.isfile(result._command._home)
-
-
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
-def test_invalid_signature() -> None:
-    """A bad detached file signature can be detected."""
-    home = tempfile.mkdtemp()
-    gpg_fingerprint = _initialize_gpg_environment(home)
-
-    # Change the contents of the file, making the signature incorrect
-    with open(home + "/file.txt", "w") as f:
-        f.write("an unsigned message")
-
-    # Run the test
-    result = crypto.verify_gpg_signed_file(
-        file=pathlib.Path(home) / "file.txt",
-        signature=pathlib.Path(home) / "file.txt.asc",
-        key=pathlib.Path(home) / "key.public.gpg",
-    )
-    shutil.rmtree(home, ignore_errors=True)
-
-    # Verify results
-    assert not result.ok
-    assert "" == result.stdout
-    assert f'gpg: BAD signature from "{GPG_OWNER}"' in result.stderr
-    assert f"Primary key fingerprint: {gpg_fingerprint}" not in result.stderr
-    assert 1 == result.return_code
-
-    assert result._command
-    assert result._command._home
-    assert not os.path.isfile(result._command._home)
-
-
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
-@mock.patch("subprocess.Popen")
-@mock.patch.object(crypto.GPGCommand, "_cleanup", return_value=None)
-def test_invalid_gpg_setup(
-    mock_cleanup: mock.MagicMock,
-    mock_popen: mock.MagicMock,
-) -> None:
-    """An invalid GPG setup can be detected."""
-    gpg_command = crypto.GPGCommand(command=[], key=pathlib.Path("/dummy/key"))
-
-    # Mock the process
-    mock_process = mock.Mock()
-    mock_process.communicate.return_value = (b"", b"GPG setup failed")
-    mock_process.returncode = 1
-    mock_popen.return_value = mock_process
-
-    # Run the test
-    result: crypto.GPGCommandResult = gpg_command.evaluate()
-
-    # Verify results
-    assert not result.ok
-    assert "" == result.stdout
-    assert "GPG setup failed" in result.stderr
-    assert 1 == result.return_code
-
-
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
-def test_missing_public_key() -> None:
-    """A missing public key can be detected."""
-    home = tempfile.mkdtemp()
-    _initialize_gpg_environment(home)
-
-    # Remove the public key
-    os.remove(home + "/key.public.gpg")
-
-    # Run the test
-    result: crypto.GPGCommandResult = crypto.verify_gpg_signed_file(
-        file=pathlib.Path(home) / "file.txt",
-        signature=pathlib.Path(home) / "file.txt.asc",
-        key=pathlib.Path(home) / "key.public.gpg",
-    )
-    shutil.rmtree(home, ignore_errors=True)
-
-    # Verify results
-    assert not result.ok
-    assert "" == result.stdout
-    assert (
-        f"gpg: can't open '{home}/key.public.gpg': No such file or directory"
-        in result.stderr
-    )
-    assert 2 == result.return_code
-
-
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
-def test_invalid_public_key() -> None:
-    """An invalid public key can be detected."""
-    home = tempfile.mkdtemp()
-    _initialize_gpg_environment(home)
-
-    # Change the contents of the public key
-    with open(home + "/key.public.gpg", "w") as f:
-        f.write("invalid key")
-
-    # Run the test
-    result: crypto.GPGCommandResult = crypto.verify_gpg_signed_file(
-        file=pathlib.Path(home) / "file.txt",
-        signature=pathlib.Path(home) / "file.txt.asc",
-        key=pathlib.Path(home) / "key.public.gpg",
-    )
-    shutil.rmtree(home, ignore_errors=True)
-
-    # Verify results
-    assert not result.ok
-    assert "" == result.stdout
-    assert "gpg: no valid OpenPGP data found" in result.stderr
-    assert 2 == result.return_code
-
-
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
-def test_missing_signed_file() -> None:
-    """A missing signed file can be detected."""
-    home = tempfile.mktemp()
-
-    # Run the test
-    with pytest.raises(FileNotFoundError) as excinfo:
-        crypto.verify_gpg_signed_file(
-            file=pathlib.Path(home) / "file.txt",
-            signature=pathlib.Path(home) / "file.txt.asc",
-            key=pathlib.Path(home) / "key.public.gpg",
+        # Import the public and private keys
+        # It is strictly not necessary to import both public and private keys,
+        #  the private key should be enough.
+        #  However, the Python 2.6 CI image requires that.
+        subprocess.run(
+            [
+                "/usr/bin/gpg",
+                "--homedir",
+                self.__home,
+                "--import",
+                f"{self.__home}/key.public.gpg",
+            ],
+            capture_output=True,
+            check=True,
+            env={"LC_ALL": "C.UTF-8"},
+        )
+        subprocess.run(
+            [
+                "/usr/bin/gpg",
+                "--homedir",
+                self.__home,
+                "--import",
+                f"{self.__home}/key.private.gpg",
+            ],
+            capture_output=True,
+            check=True,
+            env={"LC_ALL": "C.UTF-8"},
         )
 
-    # Verify results
-    assert "FileNotFoundError" in str(excinfo)
-    assert not os.path.isfile(pathlib.Path(home) / "file.txt")
-    assert not os.path.isdir(pathlib.Path(home))
+        # Get the fingerprint of the key
+        self.__gpg_fingerprint = _keygen._get_fingerprint(gpg_tmp_dir, self.__home)
+        self.assertTrue(os.path.exists(self.__home + "/key.fingerprint.txt"))
 
-
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
-def test_missing_signature_file() -> None:
-    """A missing signature file can be detected."""
-    home = tempfile.mkdtemp()
-    _initialize_gpg_environment(home)
-
-    # Remove the signature file
-    os.remove(home + "/file.txt.asc")
-
-    # Run the test
-    with pytest.raises(FileNotFoundError) as excinfo:
-        crypto.verify_gpg_signed_file(
-            file=pathlib.Path(home) / "file.txt",
-            signature=pathlib.Path(home) / "file.txt.asc",
-            key=pathlib.Path(home) / "key.public.gpg",
+        # Create a file and sign it
+        file = self.__home + "/file.txt"
+        with open(file, "w") as f:
+            f.write("a signed message")
+        subprocess.run(
+            [
+                "/usr/bin/gpg",
+                "--homedir",
+                self.__home,
+                "--detach-sign",
+                "--armor",
+                file,
+            ],
+            capture_output=True,
+            check=True,
+            env={"LC_ALL": "C.UTF-8"},
         )
 
-    # Verify results
-    assert "FileNotFoundError" in str(excinfo)
-    assert os.path.isfile(pathlib.Path(home) / "file.txt")
-    assert not os.path.isfile(pathlib.Path(home) / "file.txt.asc")
+        # Ensure the signature has been created
+        self.assertTrue(os.path.exists(self.__home + "/file.txt.asc"))
 
-    shutil.rmtree(home, ignore_errors=True)
+    @mock.patch(
+        "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+        "/tmp/",
+    )
+    def test_valid_signature(self) -> None:
+        """A detached file signature can be verified."""
+
+        # Run the test
+        result = crypto.verify_gpg_signed_file(
+            file=pathlib.Path(self.__home) / "file.txt",
+            signature=pathlib.Path(self.__home) / "file.txt.asc",
+            key=pathlib.Path(self.__home) / "key.public.gpg",
+        )
+
+        # Verify results
+        self.assertTrue(result.ok)
+        self.assertEqual("", result.stdout)
+        self.assertIn(f'gpg: Good signature from "{GPG_OWNER}"', result.stderr)
+
+        self.assertIn(
+            f"Primary key fingerprint: {self.__gpg_fingerprint}", result.stderr
+        )
+        self.assertEqual(0, result.return_code)
+
+        self.assertIsNotNone(result._command)
+        self.assertIsNotNone(result._command._home)
+        self.assertFalse(os.path.isfile(result._command._home))
+
+    @mock.patch(
+        "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+        "/tmp/",
+    )
+    def test_invalid_signature(self) -> None:
+        """A bad detached file signature can be detected."""
+        # Change the contents of the file, making the signature incorrect
+        with open(self.__home + "/file.txt", "w") as f:
+            f.write("an unsigned message")
+
+        # Run the test
+        result = crypto.verify_gpg_signed_file(
+            file=pathlib.Path(self.__home) / "file.txt",
+            signature=pathlib.Path(self.__home) / "file.txt.asc",
+            key=pathlib.Path(self.__home) / "key.public.gpg",
+        )
+
+        # Verify results
+        self.assertFalse(result.ok)
+        self.assertEqual("", result.stdout)
+        self.assertIn(f'gpg: BAD signature from "{GPG_OWNER}"', result.stderr)
+        self.assertNotIn(
+            f"Primary key fingerprint: {self.__gpg_fingerprint}", result.stderr
+        )
+        self.assertEqual(1, result.return_code)
+
+        self.assertIsNotNone(result._command)
+        self.assertIsNotNone(result._command._home)
+        self.assertFalse(os.path.isfile(result._command._home))
+
+    @mock.patch(
+        "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+        "/tmp/",
+    )
+    @mock.patch("subprocess.Popen")
+    @mock.patch.object(crypto.GPGCommand, "_cleanup", return_value=None)
+    def test_invalid_gpg_setup(
+        self,
+        mock_cleanup: mock.MagicMock,
+        mock_popen: mock.MagicMock,
+    ) -> None:
+        """An invalid GPG setup can be detected."""
+        gpg_command = crypto.GPGCommand(command=[], key=pathlib.Path("/dummy/key"))
+
+        # Mock the process
+        mock_process = mock.Mock()
+        mock_process.communicate.return_value = (b"", b"GPG setup failed")
+        mock_process.returncode = 1
+        mock_popen.return_value = mock_process
+
+        # Run the test
+        result: crypto.GPGCommandResult = gpg_command.evaluate()
+
+        # Verify results
+        self.assertFalse(result.ok)
+        self.assertEqual("", result.stdout)
+        self.assertIn("GPG setup failed", result.stderr)
+        self.assertEqual(1, result.return_code)
+
+    @mock.patch(
+        "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+        "/tmp/",
+    )
+    def test_missing_public_key(self) -> None:
+        """A missing public key can be detected."""
+        # Remove the public key
+        os.remove(self.__home + "/key.public.gpg")
+
+        # Run the test
+        result: crypto.GPGCommandResult = crypto.verify_gpg_signed_file(
+            file=pathlib.Path(self.__home) / "file.txt",
+            signature=pathlib.Path(self.__home) / "file.txt.asc",
+            key=pathlib.Path(self.__home) / "key.public.gpg",
+        )
+
+        # Verify results
+        self.assertFalse(result.ok)
+        self.assertEqual("", result.stdout)
+        self.assertIn(
+            f"gpg: can't open '{self.__home}/key.public.gpg': No such file or directory",
+            result.stderr,
+        )
+        self.assertEqual(2, result.return_code)
+
+    @mock.patch(
+        "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+        "/tmp/",
+    )
+    def test_invalid_public_key(self) -> None:
+        """An invalid public key can be detected."""
+        # Change the contents of the public key
+        with open(self.__home + "/key.public.gpg", "w") as f:
+            f.write("invalid key")
+
+        # Run the test
+        result: crypto.GPGCommandResult = crypto.verify_gpg_signed_file(
+            file=pathlib.Path(self.__home) / "file.txt",
+            signature=pathlib.Path(self.__home) / "file.txt.asc",
+            key=pathlib.Path(self.__home) / "key.public.gpg",
+        )
+
+        # Verify results
+        self.assertFalse(result.ok)
+        self.assertEqual("", result.stdout)
+        self.assertIn("gpg: no valid OpenPGP data found", result.stderr)
+        self.assertEqual(2, result.return_code)
+
+    @mock.patch(
+        "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+        "/tmp/",
+    )
+    def test_missing_signed_file(self) -> None:
+        """A missing signed file can be detected."""
+        temp_dir = tempfile.gettempdir()
+        unique_filename = str(uuid.uuid4())
+        home = os.path.join(temp_dir, unique_filename)
+
+        # Run the test
+        with self.assertRaises(FileNotFoundError):
+            crypto.verify_gpg_signed_file(
+                file=pathlib.Path(home) / "file.txt",
+                signature=pathlib.Path(home) / "file.txt.asc",
+                key=pathlib.Path(home) / "key.public.gpg",
+            )
+
+        self.assertFalse(os.path.isfile(pathlib.Path(home) / "file.txt"))
+        self.assertFalse(os.path.isdir(pathlib.Path(home)))
+
+    @mock.patch(
+        "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
+        "/tmp/",
+    )
+    def test_missing_signature_file(self) -> None:
+        """A missing signature file can be detected."""
+        # Remove the signature file
+        os.remove(self.__home + "/file.txt.asc")
+
+        # Run the test
+        with self.assertRaises(FileNotFoundError):
+            crypto.verify_gpg_signed_file(
+                file=pathlib.Path(self.__home) / "file.txt",
+                signature=pathlib.Path(self.__home) / "file.txt.asc",
+                key=pathlib.Path(self.__home) / "key.public.gpg",
+            )
+
+        self.assertTrue(os.path.isfile(pathlib.Path(self.__home) / "file.txt"))
+        self.assertFalse(os.path.isfile(pathlib.Path(self.__home) / "file.txt.asc"))
+
+
+if __name__ == "__main__":
+    main()

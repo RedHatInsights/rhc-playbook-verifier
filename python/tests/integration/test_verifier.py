@@ -40,6 +40,14 @@ class PlaybookTestCase(TestCase):
         self.assertIn("rhc_playbook_lib.PreconditionError", result.stderr)
         self.assertIn("not a valid base64 string", result.stderr)
 
+    def test_no_signature(self) -> None:
+        """Consume a playbook with no signature."""
+        playbook_path = self.data_dir / "playbooks-unsigned" / "sample.yml"
+        result = self._verify_playbook(playbook_path)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("rhc_playbook_lib.PreconditionError", result.stderr)
+        self.assertIn("does not contain a signature", result.stderr)
+
     @staticmethod
     def _verify_playbook(playbook_path: Path) -> subprocess.CompletedProcess:
         """Call rhc-playbook-verifier; do not assert on return code."""

@@ -19,15 +19,11 @@ class PlaybookTestCase(TestCase):
 
     def test_valid_playbooks(self) -> None:
         """Consume valid playbooks."""
-        playbook_files = (
-            "bugs.yml",
-            "document-from-hell.yml",
-            "insights_remove.yml",
-            "unicode.yml",
-        )
         playbook_paths = (
-            self.data_dir / "playbooks" / playbook_file
-            for playbook_file in playbook_files
+            self.data_dir / "playbooks" / "bugs.yml",
+            self.data_dir / "playbooks" / "document-from-hell.yml",
+            self.data_dir / "playbooks" / "insights_remove.yml",
+            self.data_dir / "playbooks" / "unicode.yml",
         )
         for playbook_path in playbook_paths:
             with self.subTest(playbook_path=playbook_path):
@@ -36,19 +32,13 @@ class PlaybookTestCase(TestCase):
                 playbook_content: str = playbook_path.read_text()
                 self.assertEqual(result.stdout.strip(), playbook_content.strip())
 
-    def test_invalid_playbooks(self) -> None:
-        """Consume invalid playbooks."""
-        playbook_files = ("invalid-signature.yml",)
-        playbook_paths = tuple(
-            self.data_dir / "playbooks-unsigned" / playbook_file
-            for playbook_file in playbook_files
-        )
-        for playbook_path in playbook_paths:
-            with self.subTest(playbook_path=playbook_paths):
-                result = self._verify_playbook(playbook_path)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("rhc_playbook_lib.PreconditionError", result.stderr)
-                self.assertIn("not a valid base64 string", result.stderr)
+    def test_invalid_signature(self) -> None:
+        """Consume a playbook with an invalid signature."""
+        playbook_path = self.data_dir / "playbooks-unsigned" / "invalid-signature.yml"
+        result = self._verify_playbook(playbook_path)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("rhc_playbook_lib.PreconditionError", result.stderr)
+        self.assertIn("not a valid base64 string", result.stderr)
 
     @staticmethod
     def _verify_playbook(playbook_path: Path) -> subprocess.CompletedProcess:

@@ -29,7 +29,7 @@ class TestSigner(TestCase):
 
     def test_behavior(self) -> None:
         """Sign and verify a revocation list and playbooks."""
-        data_dir = Path(__file__).parents[4].absolute() / "data"
+        data_dir = Path(__file__).parents[3].absolute() / "data"
 
         # Sign a revocation list, and write it to disk
         with open(data_dir / "revoked_playbooks.yml") as rev_list_in_fd:

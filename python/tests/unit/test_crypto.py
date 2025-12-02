@@ -120,9 +120,10 @@ class TestCrypto(TestCase):
         )
         self.assertEqual(0, result.return_code)
 
-        self.assertIsNotNone(result._command)
-        self.assertIsNotNone(result._command._home)
-        self.assertFalse(os.path.isfile(result._command._home))
+        assert result._command is not None
+        assert result._command._home is not None
+
+        self.assertFalse(pathlib.Path(result._command._home).is_file())
 
     @mock.patch(
         "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
@@ -150,9 +151,10 @@ class TestCrypto(TestCase):
         )
         self.assertEqual(1, result.return_code)
 
-        self.assertIsNotNone(result._command)
-        self.assertIsNotNone(result._command._home)
-        self.assertFalse(os.path.isfile(result._command._home))
+        assert result._command is not None
+        assert result._command._home is not None
+
+        self.assertFalse(pathlib.Path(result._command._home).is_file())
 
     @mock.patch(
         "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",

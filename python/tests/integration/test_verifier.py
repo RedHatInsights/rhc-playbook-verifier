@@ -15,7 +15,7 @@ class PlaybookTestCase(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         """Set class variables."""
-        cls.data_dir = Path(__file__).parents[4].absolute() / "data"
+        cls.data_dir = Path(__file__).parents[3].absolute() / "data"
 
     def test_valid_playbooks(self) -> None:
         """Consume valid playbooks."""

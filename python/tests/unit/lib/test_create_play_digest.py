@@ -16,7 +16,7 @@ class TestCreatePlayDigest(TestCase):
 
         self.assertEqual(actual, expected)
 
-    def test_all(self):
+    def test_all(self) -> None:
         files = ["insights_remove", "document-from-hell"]
 
         for file in files:

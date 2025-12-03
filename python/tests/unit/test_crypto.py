@@ -2,6 +2,7 @@ import os.path
 import pathlib
 import shutil
 import subprocess
+import sys
 import tempfile
 import uuid
 
@@ -37,6 +38,10 @@ class TestCrypto(TestCase):
 
         It stores the fingerprint of the generated key pair and home directory in attributes.
         """
+        self.gpg_path = (
+            "/usr/local/bin/gpg" if sys.platform == "darwin" else "/usr/bin/gpg"
+        )
+
         self.__home = tempfile.mkdtemp()
         # Generate the keys and save them
         gpg_tmp_dir = _keygen._generate_keys()
@@ -48,7 +53,7 @@ class TestCrypto(TestCase):
         #  However, the Python 2.6 CI image requires that.
         subprocess.run(
             [
-                "/usr/bin/gpg",
+                self.gpg_path,
                 "--homedir",
                 self.__home,
                 "--import",
@@ -60,7 +65,7 @@ class TestCrypto(TestCase):
         )
         subprocess.run(
             [
-                "/usr/bin/gpg",
+                self.gpg_path,
                 "--homedir",
                 self.__home,
                 "--import",
@@ -81,7 +86,7 @@ class TestCrypto(TestCase):
             f.write("a signed message")
         subprocess.run(
             [
-                "/usr/bin/gpg",
+                self.gpg_path,
                 "--homedir",
                 self.__home,
                 "--detach-sign",

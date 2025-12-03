@@ -16,8 +16,8 @@ jobs:
           - "3.9"  # default RHEL 9 interpreter
           - "3.12"  # default RHEL 10 interpreter
         path:
-          - tests.unit
-          - tests.integration
+          - python/tests/unit/
+          - python/tests/integration/
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
@@ -29,4 +29,4 @@ jobs:
       - name: Install dependencies
         run: python${{ matrix.python-version }} -m pip install .
       - name: Run tests in ${{ matrix.path }}
-        run: python -m unittest discover ${{ matrix.path }}
+        run: python${{ matrix.python-version }} -m unittest discover ${{ matrix.path }}

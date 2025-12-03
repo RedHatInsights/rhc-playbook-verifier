@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 TEMPORARY_GPG_HOME_PARENT_DIRECTORY = "/tmp/"
 TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX = "rhc-playbook-verifier-gpg-"
 
+gpg_path = "/usr/local/bin/gpg" if sys.platform == "darwin" else "/usr/bin/gpg"
+
 
 def _run_gpg_command(command: list[str], fingerprint: bool = False) -> GPGCommandResult:
     """Run a GPG command in a specific directory.
@@ -80,10 +82,11 @@ def _generate_keys() -> str:
     )
     logger.debug(f"Keys generation instructions written to a file {instructions_file}.")
 
+    gpg_path = "/usr/local/bin/gpg" if sys.platform == "darwin" else "/usr/bin/gpg"
     # Generate the keys in a temporary directory
     _run_gpg_command(
         [
-            "/usr/bin/gpg",
+            gpg_path,
             "--batch",
             "--homedir",
             gpg_tmp_dir,
@@ -102,9 +105,10 @@ def _export_key_pair(gpg_tmp_dir: str, keys_path: str) -> None:
     :param gpg_tmp_dir: The GPG home directory where the key pair was generated.
     :param keys_path: The directory where the key pair should be exported.
     """
+    gpg_path = "/usr/local/bin/gpg" if sys.platform == "darwin" else "/usr/bin/gpg"
     _run_gpg_command(
         [
-            "/usr/bin/gpg",
+            gpg_path,
             "--homedir",
             gpg_tmp_dir,
             "--export",
@@ -116,9 +120,10 @@ def _export_key_pair(gpg_tmp_dir: str, keys_path: str) -> None:
     )
     logger.debug(f"GPG public key written to a file {keys_path}/key.public.gpg.")
 
+    gpg_path = "/usr/local/bin/gpg" if sys.platform == "darwin" else "/usr/bin/gpg"
     _run_gpg_command(
         [
-            "/usr/bin/gpg",
+            gpg_path,
             "--homedir",
             gpg_tmp_dir,
             "--export-secret-keys",
@@ -138,9 +143,10 @@ def _get_fingerprint(gpg_tmp_dir: str, keys_path: str) -> str:
     :param gpg_tmp_dir: The GPG home directory where the key pair was generated.
     :param keys_path: The directory where the key pair is exported.
     """
+    gpg_path = "/usr/local/bin/gpg" if sys.platform == "darwin" else "/usr/bin/gpg"
     result = _run_gpg_command(
         [
-            "/usr/bin/gpg",
+            gpg_path,
             "--homedir",
             gpg_tmp_dir,
             "--fingerprint",

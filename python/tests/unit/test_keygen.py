@@ -1,5 +1,6 @@
 import os.path
 import shutil
+import sys
 import tempfile
 
 from unittest import main, mock, TestCase
@@ -12,6 +13,10 @@ class TestKeygen(TestCase):
 
     def setUp(self) -> None:
         self.__home = tempfile.mkdtemp()
+
+        self.gpg_path = (
+            "/usr/local/bin/gpg" if sys.platform == "darwin" else "/usr/bin/gpg"
+        )
 
     def tearDown(self) -> None:
         if self.__home != "":
@@ -26,7 +31,7 @@ class TestKeygen(TestCase):
         """A valid GPG command can be executed."""
         # Run the test
         result = _keygen._run_gpg_command(
-            ["/usr/bin/gpg", "--batch", "--homedir", self.__home, "--version"],
+            [self.gpg_path, "--batch", "--homedir", self.__home, "--version"],
         )
 
         # Verify results
@@ -45,7 +50,7 @@ class TestKeygen(TestCase):
         # Run the test
         result = _keygen._run_gpg_command(
             [
-                "/usr/bin/gpg",
+                self.gpg_path,
                 "--batch",
                 "--homedir",
                 self.__home,

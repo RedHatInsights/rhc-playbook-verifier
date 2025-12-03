@@ -182,7 +182,7 @@ class TestCrypto(TestCase):
         mock_popen.return_value = mock_process
 
         # Run the test
-        result: crypto.GPGCommandResult = gpg_command.evaluate()
+        result = gpg_command.evaluate()
 
         # Verify results
         self.assertFalse(result.ok)
@@ -200,7 +200,7 @@ class TestCrypto(TestCase):
         os.remove(self.__home + "/key.public.gpg")
 
         # Run the test
-        result: crypto.GPGCommandResult = crypto.verify_gpg_signed_file(
+        result = crypto.verify_gpg_signed_file(
             file=pathlib.Path(self.__home) / "file.txt",
             signature=pathlib.Path(self.__home) / "file.txt.asc",
             key=pathlib.Path(self.__home) / "key.public.gpg",
@@ -226,7 +226,7 @@ class TestCrypto(TestCase):
             f.write("invalid key")
 
         # Run the test
-        result: crypto.GPGCommandResult = crypto.verify_gpg_signed_file(
+        result = crypto.verify_gpg_signed_file(
             file=pathlib.Path(self.__home) / "file.txt",
             signature=pathlib.Path(self.__home) / "file.txt.asc",
             key=pathlib.Path(self.__home) / "key.public.gpg",

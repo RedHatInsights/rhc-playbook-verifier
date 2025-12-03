@@ -24,8 +24,6 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: debug
-        run: ls && pwd
       - name: Install dependencies
         run: python${{ matrix.python-version }} -m pip install .
       - name: Run tests in ${{ matrix.path }}

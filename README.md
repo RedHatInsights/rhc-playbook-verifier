@@ -35,7 +35,7 @@ pre-commit run -a
 
 # test
 python3 -m pip install -e .
-python -m unittest discover tests
+python3 -m unittest discover tests
 
 <details>
 

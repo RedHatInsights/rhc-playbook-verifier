@@ -78,8 +78,6 @@ class TestSigner(TestCase):
             env={**os.environ, "LC_ALL": "C.UTF-8"},
         )
 
-        self.assertEqual(0, proc.returncode)
-
         return proc.stdout
 
     def _sign_playbook(self, playbook: str) -> str:
@@ -98,8 +96,6 @@ class TestSigner(TestCase):
             check=True,
             env={**os.environ, "LC_ALL": "C.UTF-8"},
         )
-
-        self.assertEqual(0, proc.returncode)
 
         return proc.stdout
 

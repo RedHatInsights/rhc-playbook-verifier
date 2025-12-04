@@ -102,7 +102,6 @@ def _export_key_pair(gpg_tmp_dir: str, keys_path: str) -> None:
     :param gpg_tmp_dir: The GPG home directory where the key pair was generated.
     :param keys_path: The directory where the key pair should be exported.
     """
-
     _run_gpg_command(
         [
             "/usr/bin/gpg",
@@ -139,7 +138,6 @@ def _get_fingerprint(gpg_tmp_dir: str, keys_path: str) -> str:
     :param gpg_tmp_dir: The GPG home directory where the key pair was generated.
     :param keys_path: The directory where the key pair is exported.
     """
-
     result = _run_gpg_command(
         [
             "/usr/bin/gpg",

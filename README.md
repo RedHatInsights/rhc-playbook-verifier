@@ -22,7 +22,7 @@ Historically, the Verifier has been a Python application shipped via Insights Cl
 
 ```shell
 # python
-python3 -m pip install -e .[dev]
+python3 -m pip install -e .
 cat data/playbooks/... | rhc-playbook-verifier
 ```
 

@@ -5,7 +5,6 @@ import textwrap
 import subprocess
 from contextlib import ExitStack
 from pathlib import Path
-import sys
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from types import TracebackType
 from typing import Literal, Optional
@@ -150,7 +149,7 @@ class KeyPair:
             %commit
             """
         )
-        gpg_path = "/usr/local/bin/gpg" if sys.platform == "darwin" else "/usr/bin/gpg"
+
         with ExitStack() as stack:
             gpg_home: str = stack.enter_context(TemporaryDirectory(prefix="gpg-home-"))
 
@@ -162,7 +161,7 @@ class KeyPair:
             instructions_fd.flush()
             subprocess.run(
                 [
-                    gpg_path,
+                    "/usr/bin/gpg",
                     "--batch",
                     "--generate-key",
                     "--pinentry-mode",
@@ -178,7 +177,7 @@ class KeyPair:
 
             # Generate keys
             pubkey_proc = subprocess.run(
-                [gpg_path, "--export", "--armor"],
+                ["/usr/bin/gpg", "--export", "--armor"],
                 capture_output=True,
                 check=True,
                 text=True,
@@ -186,7 +185,7 @@ class KeyPair:
             )
             privkey_proc = subprocess.run(
                 [
-                    gpg_path,
+                    "/usr/bin/gpg",
                     "--export-secret-keys",
                     "--pinentry-mode",
                     "loopback",

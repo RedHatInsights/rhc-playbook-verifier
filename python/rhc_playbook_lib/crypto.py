@@ -5,7 +5,6 @@ import os
 import os.path
 import pathlib
 import shutil
-import sys
 import tempfile
 import subprocess
 import typing
@@ -64,9 +63,6 @@ class GPGCommand:
         self.key: pathlib.Path = key
         self._home: typing.Optional[str] = None
         self._raw_command: typing.Optional[list[str]] = None
-        self.gpg_path = (
-            "/usr/local/bin/gpg" if sys.platform == "darwin" else "/usr/bin/gpg"
-        )
 
     def __str__(self) -> str:
         return "<{cls} _home={home} _raw_command={raw}>".format(
@@ -92,7 +88,7 @@ class GPGCommand:
         :returns: `True` if the gnupg is known for supporting `--kill all`.
         """
         version_process = subprocess.Popen(
-            [self.gpg_path, "--version"],
+            ["/usr/bin/gpg", "--version"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True,
@@ -194,7 +190,7 @@ class GPGCommand:
 
         :returns: The result of the shell command.
         """
-        self._raw_command = [self.gpg_path, "--homedir", self._home] + command  # type: ignore
+        self._raw_command = ["/usr/bin/gpg", "--homedir", self._home] + command  # type: ignore
         process = subprocess.Popen(
             self._raw_command,  # type: ignore
             stdout=subprocess.PIPE,

@@ -5,4 +5,4 @@ set -x
 # get to project root
 cd ../../../
 
-PATH=/usr/libexec:$PATH python3 -m unittest discover python.tests.integration
+PATH=/usr/libexec:$PATH python3 -m unittest discover python/tests/integration

@@ -81,7 +81,7 @@ def parse_playbook(playbook: str) -> list[dict[str, Any]]:
     # A playbook is a list of plays, and this functions' return type reflets that. Should this
     # function raise an exception when passed something else? And should we have a unit test?
     logger.info("Parsing playbook.")
-    content: list[dict[str, Any]] = yaml.load(playbook, Loader=Loader)
+    content: list[dict[str, Any]] = yaml.load(playbook, Loader=Loader)  # type: ignore
     return content
 
 
@@ -175,7 +175,9 @@ def verify_play(play: dict, gpg_key: bytes) -> bytes:
         key_file.write_bytes(gpg_key)
 
         logger.info(f"Cryptographically verifying play '{play_name}'.")
-        result = crypto.verify_gpg_signed_file(digest_file, signature_file, key_file)
+        result: crypto.GPGCommandResult = crypto.verify_gpg_signed_file(
+            digest_file, signature_file, key_file
+        )
 
         if not result.ok:
             logger.error(

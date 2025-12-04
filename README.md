@@ -22,7 +22,7 @@ Historically, the Verifier has been a Python application shipped via Insights Cl
 
 ```shell
 # python
-python3 -m pip install -e .[dev]
+python3 -m pip install -e .
 cat data/playbooks/... | rhc-playbook-verifier
 ```
 
@@ -34,10 +34,8 @@ dnf install pre-commit
 pre-commit run -a
 
 # test
-python3 -m pip install -e .[dev]
-pytest python/tests/unit
-pytest python/tests/integration
-```
+python3 -m pip install -e .
+python3 -m unittest discover tests
 
 <details>
 
@@ -45,7 +43,7 @@ pytest python/tests/integration
 
 ```shell
 # python coverage
-PYTHONPATH=python/ python3 -m coverage run -m pytest python/tests/unit/
+PYTHONPATH=python/ python3 -m coverage run -m unittest discover python.tests.unit
 python3 -m coverage report
 python3 -m coverage html
 ```

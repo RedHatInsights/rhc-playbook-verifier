@@ -11,7 +11,7 @@ from typing import Literal, Optional
 from unittest import TestCase
 
 
-class PlaybookTestCase(TestCase):
+class TestSigner(TestCase):
     """Execute ``rhc-playbook-signer --playbook=...``."""
 
     def setUp(self) -> None:
@@ -132,7 +132,8 @@ class KeyPair:
 
     def __init__(self) -> None:
         """Create a key pair, and write them to the filesystem."""
-        gpg_instructions = textwrap.dedent("""\
+        gpg_instructions = textwrap.dedent(
+            """\
             Key-Type: EDDSA
               Key-Curve: ed25519
             Subkey-Type: ECDH
@@ -141,7 +142,9 @@ class KeyPair:
             Expire-Date: 0
             %no-protection
             %commit
-            """)
+            """
+        )
+
         with ExitStack() as stack:
             gpg_home: str = stack.enter_context(TemporaryDirectory(prefix="gpg-home-"))
 
@@ -153,7 +156,7 @@ class KeyPair:
             instructions_fd.flush()
             subprocess.run(
                 [
-                    "gpg",
+                    "/usr/bin/gpg",
                     "--batch",
                     "--generate-key",
                     "--pinentry-mode",
@@ -169,7 +172,7 @@ class KeyPair:
 
             # Generate keys
             pubkey_proc = subprocess.run(
-                ["gpg", "--export", "--armor"],
+                ["/usr/bin/gpg", "--export", "--armor"],
                 capture_output=True,
                 check=True,
                 text=True,
@@ -177,7 +180,7 @@ class KeyPair:
             )
             privkey_proc = subprocess.run(
                 [
-                    "gpg",
+                    "/usr/bin/gpg",
                     "--export-secret-keys",
                     "--pinentry-mode",
                     "loopback",

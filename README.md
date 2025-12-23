@@ -28,6 +28,8 @@ cat data/playbooks/... | rhc-playbook-verifier
 
 ### Testing
 
+To test locally:
+
 ```shell
 # lint
 dnf install pre-commit
@@ -37,6 +39,13 @@ pre-commit run -a
 python3 -m pip install -e .[dev]
 pytest python/tests/unit
 pytest python/tests/integration
+```
+
+To test in an isolated environment:
+
+```bash
+pip install 'tmt+provision-virtual'
+tmt run --all --verbose report --how=html
 ```
 
 <details>

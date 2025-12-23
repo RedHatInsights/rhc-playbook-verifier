@@ -1,0 +1,10 @@
+/plan:
+  summary: test suite
+  discover:
+    how: fmf
+  execute:
+    how: tmt
+
+/tests/integration:
+  summary: Execute integration tests
+  test: ./test.sh

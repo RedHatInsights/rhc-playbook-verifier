@@ -1,3 +1,0 @@
-summary: pytest test suite
-test: ./test.sh
-duration: 10m

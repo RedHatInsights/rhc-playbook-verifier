@@ -8,3 +8,12 @@
 /tests/integration:
   summary: Execute integration tests
   test: ./test.sh
+
+/tests/package:
+  summary: Create RPM package
+  require:
+    - git
+    - make
+    - rpmdevtools
+    - mock
+  test: ./package.sh

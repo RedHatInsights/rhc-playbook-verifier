@@ -15,53 +15,44 @@ Historically, the Verifier has been a Python application shipped via Insights Cl
 - [insights-client](https://github.com/RedHatInsights/insights-client): The wrapper around Insights Core
 - [insights-core](https://github.com/RedHatInsights/insights-core): The old Playbook verifier location (see `insights/client/apps/ansible/`)
 
-
 ## Development
 
-### Running
-
-```shell
-# python
-python3 -m pip install -e .[dev]
-cat data/playbooks/... | rhc-playbook-verifier
-```
-
-### Testing
-
-To test locally:
-
-```shell
-# lint
-dnf install pre-commit
-pre-commit run -a
-
-# test
-python3 -m pip install -e .[dev]
-pytest python/tests/unit
-pytest python/tests/integration
-```
-
-To test in an isolated environment:
+Install and use:
 
 ```bash
-pip install 'tmt+provision-virtual'
+python3 -m venv venv
+source venv/bin/activate
+pip install -e .
+rhc-playbook-verifier --stdin < data/playbooks/bugs.yml
+```
+
+Lint:
+
+```bash
+dnf install pre-commit
+pre-commit run -a
+```
+
+Test:
+
+```bash
+pip install -e .[dev]
+pytest python/tests/
+
+pip install coverage
+python -m coverage run -m pytest python/tests/
+python -m coverage report
+python -m coverage html
+```
+
+Test with a VM:
+
+```bash
+dnf install 'tmt+provision-virtual'
 tmt run --all --verbose report --how=html
 ```
 
-<details>
-
-<summary>More testing tips</summary>
-
-```shell
-# python coverage
-PYTHONPATH=python/ python3 -m coverage run -m pytest python/tests/unit/
-python3 -m coverage report
-python3 -m coverage html
-```
-
-</details>
-
-### Building
+## Building
 
 The Python verifier can be built as an RPM package. The following command will build an `.noarch.rpm` in `rpm/` directory.
 
@@ -70,7 +61,6 @@ dnf install -y epel-release  # CentOS Stream, RHEL
 dnf install -y rpmdevtools mock
 make rpm VERSION=1.0.0 BUILDROOT=fedora-40-x86_64
 ```
-
 
 ## Contributing
 

@@ -12,12 +12,12 @@ repos:
       - id: check-yaml
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.5
+    rev: v0.15.12
     hooks:
       - id: ruff-check
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
+    rev: v1.19.1
     hooks:
       - id: mypy
         additional_dependencies:
@@ -26,10 +26,10 @@ repos:
         # use of pytest.
         exclude: '^python/tests-.*'
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.29.0
+    rev: v8.30.0
     hooks:
       - id: gitleaks
   - repo: https://github.com/teemtee/tmt
-    rev: 1.64.0
+    rev: 1.72.0
     hooks:
       - id: tmt-lint

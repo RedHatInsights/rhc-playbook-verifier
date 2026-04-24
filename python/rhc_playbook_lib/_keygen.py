@@ -17,7 +17,6 @@ from rhc_playbook_lib.crypto import GPGCommandResult
 logger = logging.getLogger(__name__)
 
 
-TEMPORARY_GPG_HOME_PARENT_DIRECTORY = "/tmp/"
 TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX = "rhc-playbook-verifier-gpg-"
 
 
@@ -57,10 +56,7 @@ def _generate_keys() -> str:
     Generate GPG keys into a temporary directory.
     """
     # Create a temporary directory to store the keys
-    gpg_tmp_dir = tempfile.mkdtemp(
-        dir=TEMPORARY_GPG_HOME_PARENT_DIRECTORY,
-        prefix=TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX,
-    )
+    gpg_tmp_dir = tempfile.mkdtemp(prefix=TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX)
     logger.debug(f"Generating GPG keys into {gpg_tmp_dir}.")
 
     instructions_file = pathlib.Path(gpg_tmp_dir) / "keygen"

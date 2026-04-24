@@ -1,63 +1,65 @@
-import os.path
+"""Tests for module `rhc_playbook_lib._keygen`."""
+
 import shutil
 import tempfile
+from contextlib import ExitStack
+from unittest import TestCase
+from pathlib import Path
 
 from rhc_playbook_lib import _keygen
 
 
-def test_run_valid_gpg_command() -> None:
-    """A valid GPG command can be executed."""
-    home = tempfile.mkdtemp()
+class TestCallGPG(TestCase):
+    """Test subprocess calls to ``/usr/bin/gpg``."""
 
-    # Run the test
-    result = _keygen._run_gpg_command(
-        ["/usr/bin/gpg", "--batch", "--homedir", home, "--version"],
-    )
+    def setUp(self) -> None:
+        """Create a temporary home directory."""
+        self.stack = ExitStack()
+        try:
+            self.home = Path(self.stack.enter_context(tempfile.TemporaryDirectory()))
+        except:
+            self.tearDown()
+            raise
 
-    # Verify results
-    assert True is result.ok
-    assert "gpg (GnuPG)" in result.stdout
-    assert f"Home: {home}" in result.stdout
-    assert "" == result.stderr
-    assert 0 == result.return_code
+    def tearDown(self) -> None:
+        """Clean up."""
+        self.stack.close()
 
-    shutil.rmtree(home)
+    def test_run_gpg_command_success(self) -> None:
+        """Call ``_keygen._run_gpg_command()`` with a valid command."""
+        result = _keygen._run_gpg_command(
+            ["/usr/bin/gpg", "--batch", "--homedir", str(self.home), "--version"],
+        )
+        self.assertTrue(result.ok)
+        self.assertIn("gpg (GnuPG)", result.stdout)
+        self.assertIn(f"Home: {self.home}", result.stdout)
+        self.assertEqual("", result.stderr)
+        self.assertEqual(0, result.return_code)
 
+    def test_run_gpg_command_failure(self) -> None:
+        """Call ``_keygen._run_gpg_command()`` with an invalid command."""
+        result = _keygen._run_gpg_command(
+            ["/usr/bin/gpg", "--batch", "--homedir", str(self.home), "--invalid-flag"],
+        )
+        self.assertFalse(result.ok)
+        self.assertEqual("", result.stdout)
+        self.assertIn("gpg: invalid option", result.stderr)
+        self.assertEqual(2, result.return_code)
 
-def test_run_invalid_gpg_command() -> None:
-    """An invalid GPG command can be detected."""
-    home = tempfile.mkdtemp()
+    def test_export_key_pair(self) -> None:
+        """Call ``_keygen._export_key_pair()``."""
+        gpg_tmp_dir = Path(_keygen._generate_keys())
+        self.stack.callback(shutil.rmtree, gpg_tmp_dir)
 
-    # Run the test
-    result = _keygen._run_gpg_command(
-        ["/usr/bin/gpg", "--batch", "--homedir", home, "--invalid-command"],
-    )
+        _keygen._export_key_pair(str(gpg_tmp_dir), str(self.home))
+        self.assertTrue((self.home / "key.public.gpg").is_file())
+        self.assertTrue((self.home / "key.private.gpg").is_file())
 
-    # Verify results
-    assert not result.ok
-    assert "" == result.stdout
-    assert "gpg: invalid option" in result.stderr
-    assert 2 == result.return_code
+    def test_get_fingerprint(self) -> None:
+        """Call ``_keygen._get_fingerprint()``."""
+        gpg_tmp_dir = Path(_keygen._generate_keys())
+        self.stack.callback(shutil.rmtree, gpg_tmp_dir)
 
-    shutil.rmtree(home)
-
-
-def test_generate_gpg_key_pair() -> None:
-    """A GPG key pair with a fingerprint can be generated."""
-    home = tempfile.mkdtemp()
-
-    # Run the test
-    gpg_tmp_dir = _keygen._generate_keys()
-    _keygen._export_key_pair(gpg_tmp_dir, home)
-    fingerprint = _keygen._get_fingerprint(gpg_tmp_dir, home)
-
-    # Verify results
-    assert os.path.exists(gpg_tmp_dir)
-    assert os.path.exists(gpg_tmp_dir + "/keygen")
-    assert os.path.exists(home + "/key.public.gpg")
-    assert os.path.exists(home + "/key.private.gpg")
-    assert os.path.exists(home + "/key.fingerprint.txt")
-    assert fingerprint == open(home + "/key.fingerprint.txt").read().strip()
-
-    shutil.rmtree(gpg_tmp_dir)
-    shutil.rmtree(home)
+        fingerprint = _keygen._get_fingerprint(str(gpg_tmp_dir), str(self.home))
+        with (self.home / "key.fingerprint.txt").open() as handle:
+            self.assertEqual(fingerprint, handle.read().strip())

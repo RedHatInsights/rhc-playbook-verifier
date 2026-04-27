@@ -22,9 +22,6 @@ repos:
       - id: mypy
         additional_dependencies:
           - types-PyYAML
-        # The test code is not importable, is not annotated, and is difficult to analyze given the
-        # use of pytest.
-        exclude: '^python/tests-.*'
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.0
     hooks:

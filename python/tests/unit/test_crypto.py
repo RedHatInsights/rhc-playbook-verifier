@@ -69,10 +69,6 @@ def _initialize_gpg_environment(home: str) -> str:
     return gpg_fingerprint
 
 
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
 def test_valid_signature() -> None:
     """A detached file signature can be verified."""
     home = tempfile.mkdtemp()
@@ -98,10 +94,6 @@ def test_valid_signature() -> None:
     assert not os.path.isfile(result._command._home)
 
 
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
 def test_invalid_signature() -> None:
     """A bad detached file signature can be detected."""
     home = tempfile.mkdtemp()
@@ -131,10 +123,6 @@ def test_invalid_signature() -> None:
     assert not os.path.isfile(result._command._home)
 
 
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
 @mock.patch("subprocess.Popen")
 @mock.patch.object(crypto.GPGCommand, "_cleanup", return_value=None)
 def test_invalid_gpg_setup(
@@ -160,10 +148,6 @@ def test_invalid_gpg_setup(
     assert 1 == result.return_code
 
 
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
 def test_missing_public_key() -> None:
     """A missing public key can be detected."""
     home = tempfile.mkdtemp()
@@ -190,10 +174,6 @@ def test_missing_public_key() -> None:
     assert 2 == result.return_code
 
 
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
 def test_invalid_public_key() -> None:
     """An invalid public key can be detected."""
     home = tempfile.mkdtemp()
@@ -218,10 +198,6 @@ def test_invalid_public_key() -> None:
     assert 2 == result.return_code
 
 
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
 def test_missing_signed_file() -> None:
     """A missing signed file can be detected."""
     home = tempfile.mktemp()
@@ -240,10 +216,6 @@ def test_missing_signed_file() -> None:
     assert not os.path.isdir(pathlib.Path(home))
 
 
-@mock.patch(
-    "rhc_playbook_lib.crypto.TEMPORARY_GPG_HOME_PARENT_DIRECTORY",
-    "/tmp/",
-)
 def test_missing_signature_file() -> None:
     """A missing signature file can be detected."""
     home = tempfile.mkdtemp()

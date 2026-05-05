@@ -21,7 +21,6 @@ def _initialize_gpg_environment(home: str) -> str:
 
     - key.public.gpg
     - key.private.gpg
-    - key.fingerprint.txt
     - file.txt
     - file.txt.asc
 
@@ -49,8 +48,7 @@ def _initialize_gpg_environment(home: str) -> str:
     )
 
     # Get the fingerprint of the key
-    gpg_fingerprint = _keygen._get_fingerprint(gpg_tmp_dir, home)
-    assert os.path.exists(home + "/key.fingerprint.txt")
+    gpg_fingerprint = _keygen._get_fingerprint(gpg_tmp_dir)
 
     # Create a file and sign it
     file = home + "/file.txt"

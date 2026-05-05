@@ -60,6 +60,5 @@ class TestCallGPG(TestCase):
         gpg_tmp_dir = Path(_keygen._generate_keys())
         self.stack.callback(shutil.rmtree, gpg_tmp_dir)
 
-        fingerprint = _keygen._get_fingerprint(str(gpg_tmp_dir), str(self.home))
-        with (self.home / "key.fingerprint.txt").open() as handle:
-            self.assertEqual(fingerprint, handle.read().strip())
+        fingerprint = _keygen._get_fingerprint(str(gpg_tmp_dir))
+        self.assertTrue(bool(fingerprint))

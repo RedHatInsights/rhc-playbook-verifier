@@ -1,6 +1,5 @@
 """Tests for module `rhc_playbook_lib._keygen`."""
 
-import shutil
 import tempfile
 from contextlib import ExitStack
 from unittest import TestCase
@@ -48,17 +47,13 @@ class TestCallGPG(TestCase):
 
     def test_export_key_pair(self) -> None:
         """Call ``_keygen._export_key_pair()``."""
-        gpg_tmp_dir = Path(_keygen._generate_keys())
-        self.stack.callback(shutil.rmtree, gpg_tmp_dir)
-
-        _keygen._export_key_pair(str(gpg_tmp_dir), str(self.home))
+        with _keygen._generate_keys() as gpg_tmp_dir:
+            _keygen._export_key_pair(gpg_tmp_dir, str(self.home))
         self.assertTrue((self.home / "key.public.gpg").is_file())
         self.assertTrue((self.home / "key.private.gpg").is_file())
 
     def test_get_fingerprint(self) -> None:
         """Call ``_keygen._get_fingerprint()``."""
-        gpg_tmp_dir = Path(_keygen._generate_keys())
-        self.stack.callback(shutil.rmtree, gpg_tmp_dir)
-
-        fingerprint = _keygen._get_fingerprint(str(gpg_tmp_dir))
+        with _keygen._generate_keys() as gpg_tmp_dir:
+            fingerprint = _keygen._get_fingerprint(gpg_tmp_dir)
         self.assertTrue(bool(fingerprint))

@@ -1,8 +1,8 @@
 """Tests for the ``rhc-playbook-signer`` executable."""
 
 import os
-import textwrap
 import subprocess
+import textwrap
 from contextlib import ExitStack
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory

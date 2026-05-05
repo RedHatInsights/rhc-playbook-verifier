@@ -10,9 +10,8 @@ import tempfile
 import traceback
 from typing import Optional
 
-import yaml
-
 import rhc_playbook_lib as lib
+import yaml
 from rhc_playbook_lib import crypto
 from rhc_playbook_lib.serialization import CustomYamlDumper
 from rhc_playbook_verifier.app import get_version_from_package

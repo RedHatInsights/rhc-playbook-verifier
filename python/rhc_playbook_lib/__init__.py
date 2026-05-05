@@ -1,4 +1,5 @@
 import base64
+import binascii
 import copy
 import dataclasses
 import hashlib
@@ -7,14 +8,12 @@ import os
 import pathlib
 import sys
 import tempfile
-import binascii
 from typing import Any
 
 import yaml
 
 from rhc_playbook_lib import crypto
-from rhc_playbook_lib.serialization import serialize_play, Loader
-
+from rhc_playbook_lib.serialization import Loader, serialize_play
 
 logger = logging.getLogger(__name__)
 

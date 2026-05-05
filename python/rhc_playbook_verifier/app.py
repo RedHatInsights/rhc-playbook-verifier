@@ -1,12 +1,11 @@
 import argparse
 import contextlib
+import importlib.metadata
 import logging
 import pathlib
 import pkgutil
 import sys
 import traceback
-
-import importlib.metadata
 
 import rhc_playbook_lib as lib
 

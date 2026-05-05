@@ -1,8 +1,7 @@
 from unittest import TestCase
 
 import yaml
-
-from rhc_playbook_lib.serialization import Serializer, CustomYamlDumper
+from rhc_playbook_lib.serialization import CustomYamlDumper, Serializer
 
 
 class TestPlaybookSerializer(TestCase):

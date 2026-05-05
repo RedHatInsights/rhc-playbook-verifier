@@ -1,9 +1,8 @@
 import pathlib
 import unittest.mock
 
-import rhc_playbook_lib as lib
 import pytest
-
+import rhc_playbook_lib as lib
 
 DATA = pathlib.Path(__file__).parents[3].absolute() / "data"
 GPG_KEY = (DATA / "public.gpg").read_bytes()

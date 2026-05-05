@@ -1,11 +1,10 @@
 import logging
 import typing
-import yaml
 
+import yaml
+import yaml.composer
 import yaml.parser
 import yaml.scanner
-import yaml.composer
-
 
 logger = logging.getLogger(__name__)
 

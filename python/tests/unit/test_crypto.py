@@ -27,8 +27,9 @@ def _initialize_gpg_environment(home: str) -> str:
     Return the fingerprint of the generated key pair.
     """
     # Generate the keys and save them
-    gpg_tmp_dir = _keygen._generate_keys()
-    _keygen._export_key_pair(gpg_tmp_dir, home)
+    with _keygen._generate_keys() as gpg_tmp_dir:
+        _keygen._export_key_pair(gpg_tmp_dir, home)
+        gpg_fingerprint = _keygen._get_fingerprint(gpg_tmp_dir)
 
     # Import the public and private keys
     # It is strictly not necessary to import both public and private keys,
@@ -46,9 +47,6 @@ def _initialize_gpg_environment(home: str) -> str:
         check=True,
         env={"LC_ALL": "C.UTF-8"},
     )
-
-    # Get the fingerprint of the key
-    gpg_fingerprint = _keygen._get_fingerprint(gpg_tmp_dir)
 
     # Create a file and sign it
     file = home + "/file.txt"

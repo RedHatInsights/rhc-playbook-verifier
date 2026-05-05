@@ -3,12 +3,13 @@ import logging
 import os
 import pathlib
 import re
-import shutil
 import subprocess
 import sys
-import tempfile
 import textwrap
 import traceback
+from contextlib import contextmanager
+from tempfile import TemporaryDirectory
+from typing import Generator
 
 import rhc_playbook_lib as lib
 from rhc_playbook_lib.crypto import GPGCommandResult
@@ -51,44 +52,45 @@ def _run_gpg_command(command: list[str], fingerprint: bool = False) -> GPGComman
     return result
 
 
-def _generate_keys() -> str:
+@contextmanager
+def _generate_keys() -> Generator[str, None, None]:
+    """Generate GPG keys into a temporary directory.
+
+    Yield the path to the directory into which keys are generated.
     """
-    Generate GPG keys into a temporary directory.
-    """
-    # Create a temporary directory to store the keys
-    gpg_tmp_dir = tempfile.mkdtemp(prefix=TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX)
-    logger.debug(f"Generating GPG keys into {gpg_tmp_dir}.")
-
-    instructions_file = pathlib.Path(gpg_tmp_dir) / "keygen"
-    instructions_file.write_text(
-        textwrap.dedent(
-            """
-            Key-Type: EDDSA
-            Key-Curve: ed25519
-            Subkey-Type: ECDH
-            Subkey-Curve: cv25519
-            Name-Real: rhc-playbook-verifier test
-            Expire-Date: 0
-            %no-protection
-            %commit
-            """
-        ).strip()
-    )
-    logger.debug(f"Keys generation instructions written to a file {instructions_file}.")
-
-    # Generate the keys in a temporary directory
-    _run_gpg_command(
-        [
-            "/usr/bin/gpg",
-            "--batch",
-            "--homedir",
-            gpg_tmp_dir,
-            "--generate-key",
-            f"{instructions_file}",
-        ]
-    )
-
-    return gpg_tmp_dir
+    with TemporaryDirectory(
+        prefix=TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX
+    ) as gpg_tmp_dir:
+        logger.debug(f"Generating GPG keys into {gpg_tmp_dir}.")
+        instructions_file = pathlib.Path(gpg_tmp_dir) / "keygen"
+        instructions_file.write_text(
+            textwrap.dedent(
+                """
+                Key-Type: EDDSA
+                Key-Curve: ed25519
+                Subkey-Type: ECDH
+                Subkey-Curve: cv25519
+                Name-Real: rhc-playbook-verifier test
+                Expire-Date: 0
+                %no-protection
+                %commit
+                """
+            ).strip()
+        )
+        logger.debug(
+            f"Keys generation instructions written to a file {instructions_file}."
+        )
+        _run_gpg_command(
+            [
+                "/usr/bin/gpg",
+                "--batch",
+                "--homedir",
+                gpg_tmp_dir,
+                "--generate-key",
+                f"{instructions_file}",
+            ]
+        )
+        yield gpg_tmp_dir
 
 
 def _export_key_pair(gpg_tmp_dir: str, keys_path: str) -> None:
@@ -165,21 +167,15 @@ def run() -> None:
     )
     args = parser.parse_args()
 
-    # Generate the keys
-    gpg_tmp_dir = _generate_keys()
+    # Generate a keypair, export them to args.directory, and get their fingerprint
+    with _generate_keys() as gpg_tmp_dir:
+        os.makedirs(args.directory, exist_ok=True)
+        _export_key_pair(gpg_tmp_dir, str(args.directory))
+        gpg_fingerprint = _get_fingerprint(gpg_tmp_dir)
 
-    # Export the keys to the specified directory
-    os.makedirs(args.directory, exist_ok=True)
-    _export_key_pair(gpg_tmp_dir, str(args.directory))
-
-    # Get the fingerprint of the generated key pair
-    gpg_fingerprint = _get_fingerprint(gpg_tmp_dir)
     with open(f"{args.directory}/key.fingerprint.txt", "w") as fingerprint_file:
         fingerprint_file.write(gpg_fingerprint)
         logger.debug(f"GPG fingerprint written to a file {fingerprint_file.name}")
-
-    # Clean up the temporary directory
-    shutil.rmtree(gpg_tmp_dir)
 
 
 def main() -> None:

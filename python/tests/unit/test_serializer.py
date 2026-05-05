@@ -68,8 +68,9 @@ class TestPlaybookSerializer(TestCase):
                 self.assertEqual(result, expected)
 
     def test_strings_unicode(self) -> None:
+        # https://docs.astral.sh/ruff/rules/invalid-character-zero-width-space/
         for desc, source, expected in (
-            ("zero-width space", "zw​space", "'zw\\u200bspace'"),
+            ("zero-width space", "zw​space", "'zw\\u200bspace'"),  # noqa:PLE2515
             ("zero-width non-joiner", "zw‌nonjoiner", "'zw\\u200cnonjoiner'"),
             ("zero-width joiner", "👨🏼‍🚀", "'👨🏼\\u200d🚀'"),
         ):

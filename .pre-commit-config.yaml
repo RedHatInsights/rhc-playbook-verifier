@@ -17,7 +17,7 @@ repos:
       - id: ruff-check
         args:
           - '--target-version=py39'
-          - '--select=F,I'
+          - '--select=F,I,PL'
           - '--fix'
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy

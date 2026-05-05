@@ -127,12 +127,11 @@ def _export_key_pair(gpg_tmp_dir: str, keys_path: str) -> None:
     logger.debug(f"GPG private key written to a file {keys_path}/key.private.gpg.")
 
 
-def _get_fingerprint(gpg_tmp_dir: str, keys_path: str) -> str:
+def _get_fingerprint(gpg_tmp_dir: str) -> str:
     """
-    Get the fingerprint of the generated key pair and write it to a file in the `keys_path` directory.
+    Get the fingerprint of the generated key pair.
 
     :param gpg_tmp_dir: The GPG home directory where the key pair was generated.
-    :param keys_path: The directory where the key pair is exported.
     """
     result = _run_gpg_command(
         [
@@ -144,16 +143,8 @@ def _get_fingerprint(gpg_tmp_dir: str, keys_path: str) -> str:
         ],
         fingerprint=True,
     )
-
-    # Extract the fingerprint from the output
     match = re.search(r"^\s+([A-F0-9\s]+)", result.stdout, re.MULTILINE)
     gpg_fingerprint = match.group(1).strip() if match else ""
-
-    # Write the fingerprint to a file
-    with open(f"{keys_path}/key.fingerprint.txt", "w") as fingerprint_file:
-        fingerprint_file.write(gpg_fingerprint)
-        logger.debug(f"GPG fingerprint written to a file {fingerprint_file.name}")
-
     return gpg_fingerprint
 
 
@@ -182,7 +173,10 @@ def run() -> None:
     _export_key_pair(gpg_tmp_dir, str(args.directory))
 
     # Get the fingerprint of the generated key pair
-    _get_fingerprint(gpg_tmp_dir, str(args.directory))
+    gpg_fingerprint = _get_fingerprint(gpg_tmp_dir)
+    with open(f"{args.directory}/key.fingerprint.txt", "w") as fingerprint_file:
+        fingerprint_file.write(gpg_fingerprint)
+        logger.debug(f"GPG fingerprint written to a file {fingerprint_file.name}")
 
     # Clean up the temporary directory
     shutil.rmtree(gpg_tmp_dir)
@@ -195,7 +189,7 @@ def main() -> None:
     try:
         run()
         print(
-            "GPG keys were generated to 'key.public.gpg', 'key.private.gpg', 'key.fingerprint.txt."
+            "GPG keys were generated to 'key.public.gpg', 'key.private.gpg', 'key.fingerprint.txt'."
         )
     except Exception as exc:
         logger.critical("Unhandled exception occured, aborting.")

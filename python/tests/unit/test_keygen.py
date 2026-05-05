@@ -2,8 +2,8 @@
 
 import tempfile
 from contextlib import ExitStack
-from unittest import TestCase
 from pathlib import Path
+from unittest import TestCase
 
 from rhc_playbook_lib import _keygen
 

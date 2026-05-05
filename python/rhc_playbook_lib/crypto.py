@@ -5,8 +5,8 @@ import os
 import os.path
 import pathlib
 import shutil
-import tempfile
 import subprocess
+import tempfile
 import typing
 
 logger = logging.getLogger(__name__)

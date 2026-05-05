@@ -1,15 +1,12 @@
 import os.path
 import pathlib
-import pytest
 import shutil
 import subprocess
 import tempfile
-
 from unittest import mock
 
-from rhc_playbook_lib import crypto
-from rhc_playbook_lib import _keygen
-
+import pytest
+from rhc_playbook_lib import _keygen, crypto
 
 GPG_OWNER = "rhc-playbook-verifier test"
 

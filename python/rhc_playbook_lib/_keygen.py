@@ -14,7 +14,6 @@ from typing import Generator
 import rhc_playbook_lib as lib
 from rhc_playbook_lib.crypto import GPGCommandResult
 
-
 logger = logging.getLogger(__name__)
 
 

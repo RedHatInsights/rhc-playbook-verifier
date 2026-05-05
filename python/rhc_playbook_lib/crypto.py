@@ -120,7 +120,8 @@ class GPGCommand:
             return False
 
         version_info = tuple(int(v) for v in version.split("."))
-        if len(version_info) < 3:
+        min_ver = (2, 1, 18)
+        if len(version_info) < len(min_ver):
             logger.debug(
                 "GPG version is not recognized: '{version}'.".format(version=version)
             )
@@ -136,7 +137,7 @@ class GPGCommand:
         # - 8.9:  2.2.20
         # - 9.3:  2.3.3
         # which means this code should return `True` for RHEL 8 and above.
-        return version_info >= (2, 1, 18)
+        return version_info >= min_ver
 
     def _cleanup_socket(self) -> None:
         """Stop GPG socket in its home directory."""

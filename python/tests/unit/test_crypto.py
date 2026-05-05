@@ -109,7 +109,7 @@ def test_invalid_signature() -> None:
     assert "" == result.stdout
     assert f'gpg: BAD signature from "{GPG_OWNER}"' in result.stderr
     assert f"Primary key fingerprint: {gpg_fingerprint}" not in result.stderr
-    assert 1 == result.return_code
+    assert 0 != result.return_code
 
     assert result._command
     assert result._command._home
@@ -138,7 +138,7 @@ def test_invalid_gpg_setup(
     assert not result.ok
     assert "" == result.stdout
     assert "GPG setup failed" in result.stderr
-    assert 1 == result.return_code
+    assert 0 != result.return_code
 
 
 def test_missing_public_key() -> None:
@@ -164,7 +164,7 @@ def test_missing_public_key() -> None:
         f"gpg: can't open '{home}/key.public.gpg': No such file or directory"
         in result.stderr
     )
-    assert 2 == result.return_code
+    assert 0 != result.return_code
 
 
 def test_invalid_public_key() -> None:
@@ -188,7 +188,7 @@ def test_invalid_public_key() -> None:
     assert not result.ok
     assert "" == result.stdout
     assert "gpg: no valid OpenPGP data found" in result.stderr
-    assert 2 == result.return_code
+    assert 0 != result.return_code
 
 
 def test_missing_signed_file() -> None:

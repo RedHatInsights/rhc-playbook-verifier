@@ -1,8 +1,11 @@
 import pathlib
-import unittest.mock
+from contextlib import ExitStack
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
 
-import pytest
-import rhc_playbook_lib as lib
+import rhc_playbook_lib
+from rhc_playbook_lib import GPGValidationError, PreconditionError, _keygen
 
 DATA = pathlib.Path(__file__).parents[3].absolute() / "data"
 GPG_KEY = (DATA / "public.gpg").read_bytes()
@@ -10,7 +13,7 @@ REVOKED = (DATA / "revoked_playbooks.yml").read_text()
 PLAYBOOKS = pathlib.Path(__file__).parents[3].absolute() / "data" / "playbooks"
 
 
-class TestParsePlaybook:
+class TestParsePlaybook(TestCase):
     """The reference verifier used YAML 1.2.
 
     PyYAML seems to be using YAML 1.1 by default, so we have to ensure we parse it correctly.
@@ -31,22 +34,20 @@ class TestParsePlaybook:
             {"name": "first dictionary", "key": "value"},
             {"name": "second dictionary", "key": "value"},
         ]
-
-        actual = lib.parse_playbook(raw)
-
-        assert actual == expected
+        actual = rhc_playbook_lib.parse_playbook(raw)
+        self.assertEqual(actual, expected)
 
     def test_integers(self) -> None:
         raw = '- {"numbers": [1, 2, 3, 0b1101]}'
-        actual = lib.parse_playbook(raw)
+        actual = rhc_playbook_lib.parse_playbook(raw)
         expected = [{"numbers": [1, 2, 3, 13]}]
-        assert actual == expected
+        self.assertEqual(actual, expected)
 
     def test_floats(self) -> None:
         raw = '- {"numbers": [1.0, 2.0, 3.0]}'
-        actual = lib.parse_playbook(raw)
+        actual = rhc_playbook_lib.parse_playbook(raw)
         expected = [{"numbers": [1.0, 2.0, 3.0]}]
-        assert actual == expected
+        self.assertEqual(actual, expected)
 
     def test_true(self) -> None:
         raw = "- bool: [true, True, TRUE]\n  string: [y, yes, Yes, YES, on, On, ON]"
@@ -56,13 +57,11 @@ class TestParsePlaybook:
                 "string": ["y", "yes", "Yes", "YES", "on", "On", "ON"],
             }
         ]
-
-        actual = lib.parse_playbook(raw)
-
-        assert actual == expected
+        actual = rhc_playbook_lib.parse_playbook(raw)
+        self.assertEqual(actual, expected)
 
 
-class TestCleanPlaybook:
+class TestCleanPlaybook(TestCase):
     def test_ok(self) -> None:
         raw = {
             "name": "good playbook",
@@ -78,109 +77,82 @@ class TestCleanPlaybook:
             "vars": {"insights_signature_exclude": "/hosts,/vars/insights_signature/"},
             "tasks": [],
         }
-
-        actual: dict = lib.clean_play(raw)
-        assert actual == expected
+        actual: dict = rhc_playbook_lib.clean_play(raw)
+        self.assertEqual(actual, expected)
 
     def test_too_shallow_exclude(self) -> None:
         raw = {"vars": {"insights_signature_exclude": "/"}}
-
-        with pytest.raises(
-            lib.PreconditionError,
-            match="too deep or shallow",
-        ):
-            lib.clean_play(raw)
+        with self.assertRaisesRegex(PreconditionError, "too deep or shallow"):
+            rhc_playbook_lib.clean_play(raw)
 
     def test_too_deep_exclude(self) -> None:
         raw = {"vars": {"insights_signature_exclude": "/vars/nested/key"}}
-
-        with pytest.raises(
-            lib.PreconditionError,
-            match="too deep or shallow",
-        ):
-            lib.clean_play(raw)
+        with self.assertRaisesRegex(PreconditionError, "too deep or shallow"):
+            rhc_playbook_lib.clean_play(raw)
 
     def test_forbidden_exclude(self) -> None:
         raw = {"vars": {"insights_signature_exclude": "/name"}}
-
-        with pytest.raises(
-            lib.PreconditionError,
-            match="cannot be excluded",
-        ):
-            lib.clean_play(raw)
+        with self.assertRaisesRegex(PreconditionError, "cannot be excluded"):
+            rhc_playbook_lib.clean_play(raw)
 
     def test_missing_simple(self) -> None:
         raw = {"vars": {"insights_signature_exclude": "/hosts"}}
-
-        with pytest.raises(
-            lib.PreconditionError,
-            match="Variable field '/hosts' is not present in the play.",
+        with self.assertRaisesRegex(
+            PreconditionError, "Variable field '/hosts' is not present in the play."
         ):
-            lib.clean_play(raw)
+            rhc_playbook_lib.clean_play(raw)
 
     def test_missing_nested(self) -> None:
         raw = {"vars": {"insights_signature_exclude": "/vars/insights_signature"}}
-
-        with pytest.raises(
-            lib.PreconditionError,
-            match="Variable field '/vars/insights_signature' is not present in the play.",
+        with self.assertRaisesRegex(
+            PreconditionError,
+            "Variable field '/vars/insights_signature' is not present in the play.",
         ):
-            lib.clean_play(raw)
+            rhc_playbook_lib.clean_play(raw)
 
 
-class TestCreatePlayDigest:
-    @pytest.mark.parametrize("file", ("insights_remove", "document-from-hell"))
-    def test_ok(self, file: str) -> None:
-        raw: bytes = (PLAYBOOKS / f"{file}.serialized.bin").read_bytes()
-        expected: bytes = (PLAYBOOKS / f"{file}.digest.bin").read_bytes()
+class TestCreatePlayDigest(TestCase):
+    def test_ok(self) -> None:
+        for file in ("insights_remove", "document-from-hell"):
+            with self.subTest(file=file):
+                raw: bytes = (PLAYBOOKS / f"{file}.serialized.bin").read_bytes()
+                actual: bytes = rhc_playbook_lib.create_play_digest(raw)
+                expected: bytes = (PLAYBOOKS / f"{file}.digest.bin").read_bytes()
+                self.assertEqual(actual, expected)
 
-        actual: bytes = lib.create_play_digest(raw)
 
-        assert actual == expected
+class TestVerifyPlay(TestCase):
+    def test_requires_signature(self) -> None:
+        raw = {
+            "name": "bad playbook",
+            "tasks": [{"name": "a task"}],
+        }
+        with self.assertRaisesRegex(PreconditionError, "does not contain a signature"):
+            rhc_playbook_lib.verify_play(play=raw, gpg_key=b"")
 
-
-class TestVerifyPlay:
-    @unittest.mock.patch(
-        "rhc_playbook_lib.crypto.verify_gpg_signed_file",
-        return_value=unittest.mock.MagicMock(ok=False),
-    )
-    def test_requires_signature(self, _verify: unittest.mock.MagicMock) -> None:
-        raw = {"name": "bad playbook", "tasks": [{"name": "a task"}]}
-
-        with pytest.raises(
-            lib.PreconditionError,
-            match="does not contain a signature",
-        ):
-            lib.verify_play(play=raw, gpg_key=b"")
-
-    @unittest.mock.patch(
-        "rhc_playbook_lib.crypto.verify_gpg_signed_file",
-        return_value=unittest.mock.MagicMock(ok=False),
-    )
-    def test_requires_signature_exclude(self, _verify: unittest.mock.MagicMock) -> None:
+    def test_requires_signature_exclude(self) -> None:
         raw = {
             "name": "bad playbook",
             "vars": {"insights_signature": ""},
             "tasks": [{"name": "a task"}],
         }
-
-        with pytest.raises(
-            lib.PreconditionError,
-            match="does not have the key 'vars/insights_signature_exclude'",
+        with self.assertRaisesRegex(
+            PreconditionError, "does not have the key 'vars/insights_signature_exclude'"
         ):
-            lib.verify_play(play=raw, gpg_key=b"")
+            rhc_playbook_lib.verify_play(play=raw, gpg_key=b"")
 
 
-class TestVerifyPlaybook:
-    @pytest.mark.parametrize("file", ("insights_remove", "document-from-hell"))
-    def test_ok(self, file: str) -> None:
-        raw: str = (PLAYBOOKS / f"{file}.yml").read_text()
-        expected: bytes = (PLAYBOOKS / f"{file}.digest.bin").read_bytes()
-
-        parsed_play: dict = lib.parse_playbook(raw)[0]
-        digest: bytes = lib.verify_play(parsed_play, gpg_key=GPG_KEY)
-
-        assert digest == expected
+class TestVerifyPlaybook(TestCase):
+    def test_ok(self) -> None:
+        for file in ("insights_remove", "document-from-hell"):
+            with self.subTest(file=file):
+                raw: str = (PLAYBOOKS / f"{file}.yml").read_text()
+                parsed_play: dict = rhc_playbook_lib.parse_playbook(raw)[0]
+                digest: bytes = rhc_playbook_lib.verify_play(
+                    parsed_play, gpg_key=GPG_KEY
+                )
+                expected: bytes = (PLAYBOOKS / f"{file}.digest.bin").read_bytes()
+                self.assertEqual(digest, expected)
 
     def test_no_signature(self) -> None:
         parsed_play = {
@@ -191,12 +163,8 @@ class TestVerifyPlaybook:
             },
             "tasks": [],
         }
-
-        with pytest.raises(
-            lib.PreconditionError,
-            match="does not contain a signature",
-        ):
-            lib.verify_play(parsed_play, gpg_key=GPG_KEY)
+        with self.assertRaisesRegex(PreconditionError, "does not contain a signature"):
+            rhc_playbook_lib.verify_play(parsed_play, gpg_key=GPG_KEY)
 
     def test_invalid_signature(self) -> None:
         parsed_play = {
@@ -208,15 +176,11 @@ class TestVerifyPlaybook:
             },
             "tasks": [],
         }
-
-        with pytest.raises(
-            lib.PreconditionError,
-            match="not a valid base64 string",
-        ):
-            lib.verify_play(parsed_play, gpg_key=GPG_KEY)
+        with self.assertRaisesRegex(PreconditionError, "not a valid base64 string"):
+            rhc_playbook_lib.verify_play(parsed_play, gpg_key=GPG_KEY)
 
 
-class TestGetRevocationDigests:
+class TestGetRevocationDigests(TestCase):
     def test_ok(self) -> None:
         expected = {
             bytes(
@@ -230,21 +194,24 @@ class TestGetRevocationDigests:
                 )
             ),
         }
-
-        actual: set[bytes] = lib.get_revocation_digests(
+        actual: set[bytes] = rhc_playbook_lib.get_revocation_digests(
             playbook=REVOKED, gpg_key=GPG_KEY
         )
+        self.assertEqual(actual, expected)
 
-        assert actual == expected
-
-    @unittest.mock.patch(
-        "rhc_playbook_lib.crypto.verify_gpg_signed_file",
-        return_value=unittest.mock.MagicMock(ok=False),
-    )
-    def test_bad_signature(self, _: unittest.mock.MagicMock) -> None:
+    def test_bad_signature(self) -> None:
         """Test that validation failure raises an exception."""
-        with pytest.raises(
-            lib.GPGValidationError,
-            match="Play digest does not match its signature",
+        with ExitStack() as stack:
+            gpg_tmp_dir = stack.enter_context(_keygen._generate_keys())
+            export_dir = stack.enter_context(TemporaryDirectory())
+            _keygen._export_key_pair(gpg_tmp_dir, export_dir)
+            handle = stack.enter_context(
+                (Path(export_dir) / "key.public.gpg").open("rb")
+            )
+            invalid_gpg_key = handle.read()
+        with self.assertRaisesRegex(
+            GPGValidationError, "Play digest does not match its signature"
         ):
-            lib.get_revocation_digests(playbook=REVOKED, gpg_key=GPG_KEY)
+            rhc_playbook_lib.get_revocation_digests(
+                playbook=REVOKED, gpg_key=invalid_gpg_key
+            )

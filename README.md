@@ -36,11 +36,11 @@ pre-commit run -a
 Test:
 
 ```bash
-pip install -e .[dev]
-pytest python/tests/
+pip install -e .
+python -m unittest discover python/tests/
 
 pip install coverage
-python -m coverage run -m pytest python/tests/
+python -m coverage run -m unittest discover python/tests/
 python -m coverage report
 python -m coverage html
 ```

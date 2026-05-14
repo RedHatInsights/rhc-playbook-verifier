@@ -45,11 +45,21 @@ python -m coverage report
 python -m coverage html
 ```
 
-Test with a VM:
+Test with [tmt](https://tmt.readthedocs.io/en/stable/index.html):
 
 ```bash
-dnf install 'tmt+provision-virtual'
-tmt run --all --verbose report --how=html
+# test with fedora container
+tmt run --all provision --how=container report --how=html
+
+# test with fedora container, with dependencies preinstalled
+podman image build -t verifier-fedora -f Containerfile-fedora
+tmt run --all provision --how=container --image=localhost/verifier-fedora report --how=html
+
+# test with ubi9 container, with dependencies preinstalled
+dnf -y install subscription-manager
+subscription-manager register
+podman image build -t verifier-ubi9 -f Containerfile-ubi9
+tmt run --all provision --how=container --image=localhost/verifier-ubi9 report --how=html
 ```
 
 ## Building

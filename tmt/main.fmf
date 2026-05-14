@@ -1,20 +1,32 @@
 /plan:
-  summary: test suite
-  discover:
-    how: fmf
+  summary: package and test rhc-playbook-verifier
+  provision:
+    how: container
+  prepare:
+    - name: install dependencies
+      how: install
+      # NOTE: keep packages in sync with Containerfile-*
+      package:
+        - make
+        - python3-devel
+        - python3-pyyaml
+        - python3-setuptools
+        - rpmdevtools
+        # needed by centos
+        - pyproject-rpm-macros
+        - python3-wheel
+    - name: create and install rpm
+      how: shell
+      script:
+        - make rpm
+        - dnf install -y --disablerepo='*' ./rpm/noarch/*.rpm
   execute:
     how: tmt
+    script:
+      # Executables absent from default paths to avoid compatibility promises to customers.
+      - /usr/libexec/rhc-playbook-verifier --version
 
-/tests/integration:
-  summary: Execute integration tests
-  test: ./test.sh
+      # The integration tests invoke executables.
+      - PATH="$PATH:/usr/libexec/" python3 -m unittest discover python/tests/integration/
 
-/tests/package:
-  summary: Create RPM package
-  require:
-    - git
-    - make
-    - rpmdevtools
-    - mock
-    - python3-setuptools
-  test: ./package.sh
+# vim:set ft=yaml:

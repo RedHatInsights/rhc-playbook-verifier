@@ -5,7 +5,6 @@ Summary:  Ansible playbook verifier for Red Hat Insights
 License:  MIT
 
 URL:      https://github.com/RedHatInsights/%{name}
-# Source0:  %{url}/archive/refs/tags/v%{version}.tar.gz
 Source0:  %{name}-%{version}.tar.gz
 
 BuildArch: noarch

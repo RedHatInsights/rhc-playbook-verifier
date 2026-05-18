@@ -59,7 +59,7 @@ The Python verifier can be built as an RPM package. The following command will b
 ```shell
 dnf install -y epel-release  # CentOS Stream, RHEL
 dnf install -y rpmdevtools mock
-make rpm VERSION=1.0.0 BUILDROOT=fedora-40-x86_64
+make rpm BUILDROOT=fedora-40-x86_64
 ```
 
 ## Contributing

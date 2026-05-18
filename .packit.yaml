@@ -6,8 +6,10 @@ srpm_build_deps:
   - make
 
 actions:
+  post-upstream-clone:
+    - bash -c 'make rhc-playbook-verifier.spec'
   create-archive:
-    - bash -c "make build tarball VERSION=${PACKIT_PROJECT_VERSION}"
+    - bash -c 'make build-py tarball'
     - bash -c 'echo rpm/rhc-playbook-verifier-*.tar.*'
   fix-spec-file:
     # fill in Release as if packit would have done it

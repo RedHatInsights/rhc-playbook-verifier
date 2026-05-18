@@ -16,4 +16,5 @@
     - make
     - rpmdevtools
     - mock
+    - python3-setuptools
   test: ./package.sh

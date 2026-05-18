@@ -8,3 +8,4 @@ build/
 htmlcov
 # RPM builds
 rpm/
+/rhc-playbook-verifier.spec

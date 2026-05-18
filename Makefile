@@ -1,17 +1,17 @@
-VERSION?=1.0.0
+PYTHON		?= python3
+VERSION = $(shell $(PYTHON) setup.py --version | tr -d '\n')
+
 BUILDROOT?=/etc/mock/default.cfg
 
-.PHONY: build
-build: build-py
-	sed -i "s|Version:.*|Version:  $(VERSION)|" rhc-playbook-verifier.spec
-	@echo "Built $(VERSION)"
+rhc-playbook-verifier.spec: rhc-playbook-verifier.spec.in
+	[[ -n "$(VERSION)" ]]
+	sed -e 's,[@]VERSION[@],$(VERSION),g' $< > $@
 
 .PHONY: build-py
 build-py:
 	@echo "Building Python package" && \
 	cp data/public.gpg python/rhc_playbook_verifier/data/public.gpg
 	cp data/revoked_playbooks.yml python/rhc_playbook_verifier/data/revoked_playbooks.yml
-	sed -i "s|version = .*|version = $(VERSION)|" setup.cfg
 
 .PHONY: tarball
 tarball:
@@ -30,7 +30,7 @@ srpm:
 		rhc-playbook-verifier.spec
 
 .PHONY: rpm
-rpm: build tarball srpm
+rpm: rhc-playbook-verifier.spec tarball srpm
 	mock \
 		--root $(BUILDROOT) \
 		--rebuild \

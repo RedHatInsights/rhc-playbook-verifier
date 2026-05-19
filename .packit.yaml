@@ -9,8 +9,8 @@ actions:
   post-upstream-clone:
     - bash -c 'make rhc-playbook-verifier.spec'
   create-archive:
-    - bash -c 'make build-py tarball'
-    - bash -c 'echo rpm/rhc-playbook-verifier-*.tar.*'
+    - bash -c 'make dist'
+    - bash -c 'echo dist/*.tar.gz'
   fix-spec-file:
     # fill in Release as if packit would have done it
     - bash -c "sed -i -r \"s/Release:(\s*)\S+/Release:\1${PACKIT_RPMSPEC_RELEASE}%{?dist}/\" rhc-playbook-verifier.spec"

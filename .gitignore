@@ -1,11 +1,14 @@
 # Python runtime
 __pycache__/
 *.egg-info/
-# Python builds
-build/
+
 # Python testing
 .coverage
 htmlcov
-# RPM builds
-rpm/
+
+# builds
 /rhc-playbook-verifier.spec
+/dist/*
+/srpm/*
+/rpm/*
+/mock/*

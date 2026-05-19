@@ -5,7 +5,7 @@ Summary:  Ansible playbook verifier for Red Hat Insights
 License:  MIT
 
 URL:      https://github.com/RedHatInsights/%{name}
-Source0:  %{name}-%{version}.tar.gz
+Source0:  @SDIST_PREFIX@-%{version}.tar.gz
 
 BuildArch: noarch
 
@@ -27,7 +27,7 @@ rhc-playbook-signer package cryptographically signs Ansible
 playbooks to be used by the verifier.
 
 %prep
-%autosetup -p1
+%autosetup -p1 -n @SDIST_PREFIX@-%{version}
 
 %build
 %pyproject_wheel

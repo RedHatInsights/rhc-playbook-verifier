@@ -1,46 +1,45 @@
 PYTHON		?= python3
 VERSION = $(shell $(PYTHON) setup.py --version | tr -d '\n')
+SOURCES := $(shell find . -name '*.py' -o -name 'rhc-playbook-verifier.toml')
 
 BUILDROOT?=/etc/mock/default.cfg
 
+# setuptools < 69.3.0 creates archives with dashes, e.g. rhc-playbook-verifier-1.0.0.tar.gz
+# setuptools >= 69.3.0 creates archives with underscores, e.g. rhc_playbook_verifier-1.0.0.tar.gz
+# See: https://setuptools.pypa.io/en/latest/history.html#v69-3-0
+SDIST_PREFIX := $(shell if [[ $$(echo -e "69.3.0\n$$(rpm -q python3-setuptools --qf='%{VERSION}')" | sort -V | head -n 1) == '69.3.0' ]]; then echo 'rhc_playbook_verifier'; else echo 'rhc-playbook-verifier'; fi)
+
 rhc-playbook-verifier.spec: rhc-playbook-verifier.spec.in
 	[[ -n "$(VERSION)" ]]
-	sed -e 's,[@]VERSION[@],$(VERSION),g' $< > $@
+	[[ -n "$(SDIST_PREFIX)" ]]
+	sed -e 's,[@]VERSION[@],$(VERSION),g' -e 's,[@]SDIST_PREFIX[@],$(SDIST_PREFIX),g' $< > $@
 
-.PHONY: build-py
-build-py:
-	@echo "Building Python package" && \
+dist: $(SOURCES)
 	cp data/public.gpg python/rhc_playbook_verifier/data/public.gpg
 	cp data/revoked_playbooks.yml python/rhc_playbook_verifier/data/revoked_playbooks.yml
+	$(PYTHON) setup.py sdist
+	touch $@  # ensure target is newer than prerequisites
 
-.PHONY: tarball
-tarball:
-	mkdir -p "rpm/"
-	rm -rf rpm/rhc-playbook-verifier-$(VERSION).tar.gz
-	git ls-files -z | xargs -0 tar \
-		--create --gzip \
-		--transform "s|^|/rhc-playbook-verifier-$(VERSION)/|" \
-		--file rpm/rhc-playbook-verifier-$(VERSION).tar.gz
-
-.PHONY: srpm
-srpm:
+# --define values are listed in:
+# https://docs.fedoraproject.org/en-US/packaging-guidelines/RPMMacros/#_macros_set_for_the_rpm_and_srpm_build_process
+srpm: rhc-playbook-verifier.spec dist
 	rpmbuild -bs \
-		--define "_sourcedir `pwd`/rpm" \
-		--define "_srcrpmdir `pwd`/rpm" \
+		--define="_sourcedir $(abspath dist)" \
+		--define="_srcrpmdir $(abspath srpm)" \
 		rhc-playbook-verifier.spec
+	touch $@  # ensure target is newer than prerequisites
 
-.PHONY: rpm
-rpm: rhc-playbook-verifier.spec tarball srpm
+rpm: rhc-playbook-verifier.spec dist
+	rpmbuild -bb \
+		--define="_sourcedir $(abspath dist)" \
+		--define="_rpmdir $(abspath rpm)" \
+		rhc-playbook-verifier.spec
+	touch $@
+
+mock: srpm
 	mock \
-		--root $(BUILDROOT) \
+		--root=$(BUILDROOT) \
 		--rebuild \
-		--resultdir "rpm/" \
-		rpm/rhc-playbook-verifier-*.src.rpm
-
-
-.PHONY: clean
-clean: clean-rpm
-
-.PHONY: clean-rpm
-clean-rpm:
-	rm -f rpm/*
+		--resultdir="$(abspath mock)" \
+		srpm/rhc-playbook-verifier-*.src.rpm
+	touch $@  # ensure target is newer than prerequisites

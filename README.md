@@ -54,12 +54,18 @@ tmt run --all --verbose report --how=html
 
 ## Building
 
-The Python verifier can be built as an RPM package. The following command will build an `.noarch.rpm` in `rpm/` directory.
+The Python verifier can be built as an RPM package.
 
 ```shell
-dnf install -y epel-release  # CentOS Stream, RHEL
-dnf install -y rpmdevtools mock
-make rpm BUILDROOT=fedora-40-x86_64
+# non-isolated build
+dnf -y install rpmdevtools
+make rpm
+
+# isolated build
+dnf -y install mock
+gpasswd --add "$(whoami)" mock
+newgrp mock  # or, log out and back in
+make mock
 ```
 
 ## Contributing

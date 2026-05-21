@@ -12,12 +12,10 @@ from tempfile import TemporaryDirectory
 from typing import Generator
 
 import rhc_playbook_lib as lib
+from rhc_playbook_lib.constants import TEMPORARY_DIRECTORY_PREFIX
 from rhc_playbook_lib.crypto import GPGCommandResult
 
 logger = logging.getLogger(__name__)
-
-
-TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX = "rhc-playbook-verifier-gpg-"
 
 
 def _run_gpg_command(command: list[str], fingerprint: bool = False) -> GPGCommandResult:
@@ -57,9 +55,7 @@ def _generate_keys() -> Generator[str, None, None]:
 
     Yield the path to the directory into which keys are generated.
     """
-    with TemporaryDirectory(
-        prefix=TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX
-    ) as gpg_tmp_dir:
+    with TemporaryDirectory(prefix=TEMPORARY_DIRECTORY_PREFIX) as gpg_tmp_dir:
         logger.debug(f"Generating GPG keys into {gpg_tmp_dir}.")
         instructions_file = pathlib.Path(gpg_tmp_dir) / "keygen"
         instructions_file.write_text(

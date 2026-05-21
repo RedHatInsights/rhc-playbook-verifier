@@ -13,6 +13,7 @@ from typing import Optional
 import rhc_playbook_lib as lib
 import yaml
 from rhc_playbook_lib import crypto
+from rhc_playbook_lib.constants import TEMPORARY_DIRECTORY_PREFIX
 from rhc_playbook_lib.serialization import CustomYamlDumper
 from rhc_playbook_verifier.app import get_version_from_package
 
@@ -27,10 +28,7 @@ def send_signing_request(play_digest: bytes, key: str) -> bytes:
     """
     logger.info("Requesting play signature from a signing server.")
 
-    with tempfile.TemporaryDirectory(
-        prefix=lib.TEMPORARY_STASH_DIRECTORY_PREFIX,
-        dir=lib.TEMPORARY_STASH_DIRECTORY,
-    ) as temp_dir:
+    with tempfile.TemporaryDirectory(prefix=TEMPORARY_DIRECTORY_PREFIX) as temp_dir:
         temp_path = pathlib.Path(temp_dir)
 
         digest_file = temp_path / "digest"
@@ -56,10 +54,7 @@ def sign_play_digest(play_digest: bytes, key: pathlib.Path) -> bytes:
     if not key.is_file():
         raise RuntimeError(f"Key '{key}' does not exist.")
 
-    with tempfile.TemporaryDirectory(
-        prefix=lib.TEMPORARY_STASH_DIRECTORY_PREFIX,
-        dir=lib.TEMPORARY_STASH_DIRECTORY,
-    ) as temp_dir:
+    with tempfile.TemporaryDirectory(prefix=TEMPORARY_DIRECTORY_PREFIX) as temp_dir:
         temp_path = pathlib.Path(temp_dir)
 
         digest_file = temp_path / "digest"

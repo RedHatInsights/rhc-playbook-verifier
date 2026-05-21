@@ -4,7 +4,6 @@ import copy
 import dataclasses
 import hashlib
 import logging
-import os
 import pathlib
 import sys
 import tempfile
@@ -13,21 +12,12 @@ from typing import Any
 import yaml
 
 from rhc_playbook_lib import crypto
+from rhc_playbook_lib.constants import TEMPORARY_DIRECTORY_PREFIX
 from rhc_playbook_lib.serialization import Loader, serialize_play
 
 logger = logging.getLogger(__name__)
 
-
 VARIABLE_FIELDS: list[str] = ["hosts", "vars"]
-
-
-# Try to use the special /var/lib/ directory.
-if os.geteuid() == 0 and os.path.isdir("/var/lib/rhc-playbook-verifier/"):
-    TEMPORARY_STASH_DIRECTORY = "/var/lib/rhc-playbook-verifier/"
-    TEMPORARY_STASH_DIRECTORY_PREFIX = "files-"
-else:
-    TEMPORARY_STASH_DIRECTORY = "/tmp/"
-    TEMPORARY_STASH_DIRECTORY_PREFIX = "rhc-playbook-verifier-files-"
 
 
 def _configure_logging(debug: bool = False) -> None:
@@ -160,10 +150,7 @@ def verify_play(play: dict, gpg_key: bytes) -> bytes:
             f"The signature for play '{play_name}' is not a valid base64 string."
         ) from e
 
-    with tempfile.TemporaryDirectory(
-        dir=TEMPORARY_STASH_DIRECTORY,
-        prefix=TEMPORARY_STASH_DIRECTORY_PREFIX,
-    ) as temp_dir:
+    with tempfile.TemporaryDirectory(prefix=TEMPORARY_DIRECTORY_PREFIX) as temp_dir:
         temp_path = pathlib.Path(temp_dir)
 
         digest_file = temp_path / "digest"

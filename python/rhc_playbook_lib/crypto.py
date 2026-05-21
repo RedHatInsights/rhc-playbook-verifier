@@ -1,25 +1,15 @@
 import dataclasses
 import errno
 import logging
-import os
-import os.path
 import pathlib
 import shutil
 import subprocess
 import tempfile
 import typing
 
+from rhc_playbook_lib.constants import TEMPORARY_DIRECTORY_PREFIX
+
 logger = logging.getLogger(__name__)
-
-
-# We try to use the special /var/lib/ directory in which gnupg has SELinux
-# permissions to write to.
-if os.geteuid() == 0 and os.path.isdir("/var/lib/rhc-playbook-verifier/"):
-    TEMPORARY_GPG_HOME_PARENT_DIRECTORY = "/var/lib/rhc-playbook-verifier/"
-    TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX = "gpg-"
-else:
-    TEMPORARY_GPG_HOME_PARENT_DIRECTORY = "/tmp/"
-    TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX = "rhc-playbook-verifier-gpg-"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -71,10 +61,7 @@ class GPGCommand:
 
     def _setup(self) -> GPGCommandResult:
         """Prepare GPG environment."""
-        self._home = tempfile.mkdtemp(
-            dir=TEMPORARY_GPG_HOME_PARENT_DIRECTORY,
-            prefix=TEMPORARY_GPG_HOME_PARENT_DIRECTORY_PREFIX,
-        )
+        self._home = tempfile.mkdtemp(prefix=TEMPORARY_DIRECTORY_PREFIX)
 
         logger.debug(f"Will use temporary environment in '{self._home}'.")
         result: GPGCommandResult = self._run(["--import", f"{self.key.absolute()!s}"])

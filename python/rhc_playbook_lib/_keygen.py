@@ -13,40 +13,8 @@ from typing import Generator
 
 import rhc_playbook_lib as lib
 from rhc_playbook_lib.constants import TEMPORARY_DIRECTORY_PREFIX
-from rhc_playbook_lib.crypto import GPGCommandResult
 
 logger = logging.getLogger(__name__)
-
-
-def _run_gpg_command(command: list[str], fingerprint: bool = False) -> GPGCommandResult:
-    """Run a GPG command in a specific directory.
-
-    :param command: The command to be executed.
-    :param fingerprint: Optional flag to get the fingerprint from the output.
-    """
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env={"LC_ALL": "C.UTF-8"},
-        text=fingerprint,
-    )
-    stdout, stderr = process.communicate()
-
-    result = GPGCommandResult(
-        ok=process.returncode == 0,
-        return_code=process.returncode,
-        stdout=stdout.decode("utf-8") if not fingerprint else stdout,
-        stderr=stderr.decode("utf-8") if not fingerprint else stderr,
-        _command=None,
-    )
-
-    if result.ok:
-        logger.debug(f"GPG command {command}: ok.")
-    else:
-        logger.error(f"GPG command {command} returned non-zero code: {result}.")
-
-    return result
 
 
 @contextmanager
@@ -75,7 +43,7 @@ def _generate_keys() -> Generator[str, None, None]:
         logger.debug(
             f"Keys generation instructions written to a file {instructions_file}."
         )
-        _run_gpg_command(
+        subprocess.run(
             [
                 "/usr/bin/gpg",
                 "--batch",
@@ -83,7 +51,8 @@ def _generate_keys() -> Generator[str, None, None]:
                 gpg_tmp_dir,
                 "--generate-key",
                 f"{instructions_file}",
-            ]
+            ],
+            check=True,
         )
         yield gpg_tmp_dir
 
@@ -95,33 +64,25 @@ def _export_key_pair(gpg_tmp_dir: str, keys_path: str) -> None:
     :param gpg_tmp_dir: The GPG home directory where the key pair was generated.
     :param keys_path: The directory where the key pair should be exported.
     """
-    _run_gpg_command(
-        [
-            "/usr/bin/gpg",
-            "--homedir",
-            gpg_tmp_dir,
-            "--export",
-            "--armor",
-            "--yes",
-            "--output",
-            f"{keys_path}/key.public.gpg",
-        ]
+    flags_paths = (
+        ("--export", f"{keys_path}/key.public.gpg"),
+        ("--export-secret-keys", f"{keys_path}/key.private.gpg"),
     )
-    logger.debug(f"GPG public key written to a file {keys_path}/key.public.gpg.")
-
-    _run_gpg_command(
-        [
-            "/usr/bin/gpg",
-            "--homedir",
-            gpg_tmp_dir,
-            "--export-secret-keys",
-            "--armor",
-            "--yes",
-            "--output",
-            f"{keys_path}/key.private.gpg",
-        ]
-    )
-    logger.debug(f"GPG private key written to a file {keys_path}/key.private.gpg.")
+    for flag, path in flags_paths:
+        subprocess.run(
+            [
+                "/usr/bin/gpg",
+                "--homedir",
+                gpg_tmp_dir,
+                flag,
+                "--armor",
+                "--yes",
+                "--output",
+                path,
+            ],
+            check=True,
+        )
+        logger.debug(f"GPG key written to {path}")
 
 
 def _get_fingerprint(gpg_tmp_dir: str) -> str:
@@ -130,7 +91,7 @@ def _get_fingerprint(gpg_tmp_dir: str) -> str:
 
     :param gpg_tmp_dir: The GPG home directory where the key pair was generated.
     """
-    result = _run_gpg_command(
+    result = subprocess.run(
         [
             "/usr/bin/gpg",
             "--homedir",
@@ -138,7 +99,10 @@ def _get_fingerprint(gpg_tmp_dir: str) -> str:
             "--fingerprint",
             "rhc-playbook-verifier test",
         ],
-        fingerprint=True,
+        capture_output=True,
+        check=True,
+        env={"LC_ALL": "C.UTF-8"},
+        text=True,
     )
     match = re.search(r"^\s+([A-F0-9\s]+)", result.stdout, re.MULTILINE)
     gpg_fingerprint = match.group(1).strip() if match else ""

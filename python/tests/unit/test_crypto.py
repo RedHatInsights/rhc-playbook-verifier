@@ -26,7 +26,7 @@ def _initialize_gpg_environment(home: Path) -> str:
     """
     # Generate the keys and save them
     with _keygen._generate_keys() as gpg_tmp_dir:
-        _keygen._export_key_pair(gpg_tmp_dir, str(home))
+        _keygen._export_key_pair(gpg_tmp_dir, home)
         gpg_fingerprint = _keygen._get_fingerprint(gpg_tmp_dir)
 
     # Import the public and private keys

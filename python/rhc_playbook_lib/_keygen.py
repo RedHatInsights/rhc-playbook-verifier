@@ -1,13 +1,12 @@
 import argparse
 import logging
-import os
-import pathlib
 import re
 import subprocess
 import sys
 import textwrap
 import traceback
 from contextlib import contextmanager
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Generator
 
@@ -18,14 +17,15 @@ logger = logging.getLogger(__name__)
 
 
 @contextmanager
-def _generate_keys() -> Generator[str, None, None]:
+def _generate_keys() -> Generator[Path, None, None]:
     """Generate GPG keys into a temporary directory.
 
     Yield the path to the directory into which keys are generated.
     """
-    with TemporaryDirectory(prefix=TEMPORARY_DIRECTORY_PREFIX) as gpg_tmp_dir:
+    with TemporaryDirectory(prefix=TEMPORARY_DIRECTORY_PREFIX) as gpg_tmp_dir_str:
+        gpg_tmp_dir = Path(gpg_tmp_dir_str)
         logger.debug(f"Generating GPG keys into {gpg_tmp_dir}.")
-        instructions_file = pathlib.Path(gpg_tmp_dir) / "keygen"
+        instructions_file = gpg_tmp_dir / "keygen"
         instructions_file.write_text(
             textwrap.dedent(
                 """
@@ -40,9 +40,7 @@ def _generate_keys() -> Generator[str, None, None]:
                 """
             ).strip()
         )
-        logger.debug(
-            f"Keys generation instructions written to a file {instructions_file}."
-        )
+        logger.debug(f"Keys generation instructions written to {instructions_file}.")
         subprocess.run(
             [
                 "/usr/bin/gpg",
@@ -50,14 +48,14 @@ def _generate_keys() -> Generator[str, None, None]:
                 "--homedir",
                 gpg_tmp_dir,
                 "--generate-key",
-                f"{instructions_file}",
+                instructions_file,
             ],
             check=True,
         )
         yield gpg_tmp_dir
 
 
-def _export_key_pair(gpg_tmp_dir: str, keys_path: str) -> None:
+def _export_key_pair(gpg_tmp_dir: Path, keys_path: Path) -> None:
     """
     Export the generated key pair to the `keys_path` directory.
 
@@ -65,8 +63,8 @@ def _export_key_pair(gpg_tmp_dir: str, keys_path: str) -> None:
     :param keys_path: The directory where the key pair should be exported.
     """
     flags_paths = (
-        ("--export", f"{keys_path}/key.public.gpg"),
-        ("--export-secret-keys", f"{keys_path}/key.private.gpg"),
+        ("--export", keys_path / "key.public.gpg"),
+        ("--export-secret-keys", keys_path / "key.private.gpg"),
     )
     for flag, path in flags_paths:
         subprocess.run(
@@ -85,7 +83,7 @@ def _export_key_pair(gpg_tmp_dir: str, keys_path: str) -> None:
         logger.debug(f"GPG key written to {path}")
 
 
-def _get_fingerprint(gpg_tmp_dir: str) -> str:
+def _get_fingerprint(gpg_tmp_dir: Path) -> str:
     """
     Get the fingerprint of the generated key pair.
 
@@ -119,8 +117,8 @@ def run() -> None:
     parser.add_argument(
         "-d",
         "--directory",
-        type=pathlib.Path,
-        default=pathlib.Path.cwd(),
+        type=Path,
+        default=Path.cwd(),
         metavar="DIR",
         help="Directory to store the key pair (default: current working directory)",
     )
@@ -128,11 +126,11 @@ def run() -> None:
 
     # Generate a keypair, export them to args.directory, and get their fingerprint
     with _generate_keys() as gpg_tmp_dir:
-        os.makedirs(args.directory, exist_ok=True)
-        _export_key_pair(gpg_tmp_dir, str(args.directory))
+        args.directory.mkdir(parents=True, exist_ok=True)
+        _export_key_pair(gpg_tmp_dir, args.directory)
         gpg_fingerprint = _get_fingerprint(gpg_tmp_dir)
 
-    with open(f"{args.directory}/key.fingerprint.txt", "w") as fingerprint_file:
+    with (args.directory / "key.fingerprint.txt").open("w") as fingerprint_file:
         fingerprint_file.write(gpg_fingerprint)
         logger.debug(f"GPG fingerprint written to a file {fingerprint_file.name}")
 

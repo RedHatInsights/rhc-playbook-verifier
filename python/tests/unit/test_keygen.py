@@ -27,7 +27,7 @@ class TestCallGPG(TestCase):
     def test_export_key_pair(self) -> None:
         """Call ``_keygen._export_key_pair()``."""
         with _keygen._generate_keys() as gpg_tmp_dir:
-            _keygen._export_key_pair(gpg_tmp_dir, str(self.home))
+            _keygen._export_key_pair(gpg_tmp_dir, self.home)
         self.assertTrue((self.home / "key.public.gpg").is_file())
         self.assertTrue((self.home / "key.private.gpg").is_file())
 

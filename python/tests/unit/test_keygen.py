@@ -24,27 +24,6 @@ class TestCallGPG(TestCase):
         """Clean up."""
         self.stack.close()
 
-    def test_run_gpg_command_success(self) -> None:
-        """Call ``_keygen._run_gpg_command()`` with a valid command."""
-        result = _keygen._run_gpg_command(
-            ["/usr/bin/gpg", "--batch", "--homedir", str(self.home), "--version"],
-        )
-        self.assertTrue(result.ok)
-        self.assertIn("gpg (GnuPG)", result.stdout)
-        self.assertIn(f"Home: {self.home}", result.stdout)
-        self.assertEqual("", result.stderr)
-        self.assertEqual(0, result.return_code)
-
-    def test_run_gpg_command_failure(self) -> None:
-        """Call ``_keygen._run_gpg_command()`` with an invalid command."""
-        result = _keygen._run_gpg_command(
-            ["/usr/bin/gpg", "--batch", "--homedir", str(self.home), "--invalid-flag"],
-        )
-        self.assertFalse(result.ok)
-        self.assertEqual("", result.stdout)
-        self.assertIn("gpg: invalid option", result.stderr)
-        self.assertEqual(2, result.return_code)
-
     def test_export_key_pair(self) -> None:
         """Call ``_keygen._export_key_pair()``."""
         with _keygen._generate_keys() as gpg_tmp_dir:

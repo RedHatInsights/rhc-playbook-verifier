@@ -3,6 +3,7 @@
 import subprocess
 from contextlib import ExitStack
 from pathlib import Path
+from subprocess import CalledProcessError
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
@@ -81,14 +82,12 @@ class CryptoTestCase(TestCase):
             signature=self.home / "file.txt.asc",
             key=self.home / "key.public.gpg",
         )
-        self.assertTrue(result.ok)
-        self.assertEqual(result.stdout, "")
-        self.assertIn(f'gpg: Good signature from "{GPG_OWNER}"', result.stderr)
-        self.assertIn(f"Primary key fingerprint: {gpg_fingerprint}", result.stderr)
-        self.assertEqual(result.return_code, 0)
-        assert result._command
-        assert result._command._home
-        self.assertFalse(Path(result._command._home).is_file())
+        self.assertEqual(result.stdout.decode(), "")
+        self.assertIn(f'gpg: Good signature from "{GPG_OWNER}"', result.stderr.decode())
+        self.assertIn(
+            f"Primary key fingerprint: {gpg_fingerprint}", result.stderr.decode()
+        )
+        self.assertEqual(result.returncode, 0)
 
     def test_invalid_signature(self) -> None:
         """A bad detached file signature can be detected."""
@@ -98,53 +97,51 @@ class CryptoTestCase(TestCase):
         with (self.home / "file.txt").open("w") as f:
             f.write("an unsigned message")
 
-        result = crypto.verify_gpg_signed_file(
-            file=self.home / "file.txt",
-            signature=self.home / "file.txt.asc",
-            key=self.home / "key.public.gpg",
-        )
+        with self.assertRaises(CalledProcessError) as cm:
+            crypto.verify_gpg_signed_file(
+                file=self.home / "file.txt",
+                signature=self.home / "file.txt.asc",
+                key=self.home / "key.public.gpg",
+            )
 
         # Verify results
-        self.assertFalse(result.ok)
-        self.assertEqual(result.stdout, "")
-        self.assertIn(f'gpg: BAD signature from "{GPG_OWNER}"', result.stderr)
-        self.assertNotIn(f"Primary key fingerprint: {gpg_fingerprint}", result.stderr)
-        self.assertNotEqual(result.return_code, 0)
-        assert result._command
-        assert result._command._home
-        self.assertFalse(Path(result._command._home).is_file())
+        self.assertEqual("", cm.exception.stdout.decode())
+        self.assertIn(
+            f'gpg: BAD signature from "{GPG_OWNER}"', cm.exception.stderr.decode()
+        )
+        self.assertNotIn(
+            f"Primary key fingerprint: {gpg_fingerprint}", cm.exception.stderr.decode()
+        )
 
     def test_missing_public_key(self) -> None:
         """A missing public key can be detected."""
         _initialize_gpg_environment(self.home)
         (self.home / "key.public.gpg").unlink()  # remove public key
-        result: crypto.GPGCommandResult = crypto.verify_gpg_signed_file(
-            file=self.home / "file.txt",
-            signature=self.home / "file.txt.asc",
-            key=self.home / "key.public.gpg",
-        )
-        self.assertFalse(result.ok)
-        self.assertEqual(result.stdout, "")
+        with self.assertRaises(CalledProcessError) as cm:
+            crypto.verify_gpg_signed_file(
+                file=self.home / "file.txt",
+                signature=self.home / "file.txt.asc",
+                key=self.home / "key.public.gpg",
+            )
+        self.assertEqual("", cm.exception.stdout.decode())
         self.assertIn(
             f"gpg: can't open '{self.home}/key.public.gpg': No such file or directory",
-            result.stderr,
+            cm.exception.stderr.decode(),
         )
-        self.assertNotEqual(result.return_code, 0)
 
     def test_invalid_public_key(self) -> None:
         """An invalid public key can be detected."""
         _initialize_gpg_environment(self.home)
         with (self.home / "key.public.gpg").open("w") as f:
             f.write("invalid key")  # change public key
-        result: crypto.GPGCommandResult = crypto.verify_gpg_signed_file(
-            file=self.home / "file.txt",
-            signature=self.home / "file.txt.asc",
-            key=self.home / "key.public.gpg",
-        )
-        self.assertFalse(result.ok)
-        self.assertEqual(result.stdout, "")
-        self.assertIn("gpg: no valid OpenPGP data found", result.stderr)
-        self.assertNotEqual(result.return_code, 0)
+        with self.assertRaises(CalledProcessError) as cm:
+            crypto.verify_gpg_signed_file(
+                file=self.home / "file.txt",
+                signature=self.home / "file.txt.asc",
+                key=self.home / "key.public.gpg",
+            )
+        self.assertEqual("", cm.exception.stdout.decode())
+        self.assertIn("gpg: no valid OpenPGP data found", cm.exception.stderr.decode())
 
     def test_missing_signed_file(self) -> None:
         """A missing signed file can be detected."""

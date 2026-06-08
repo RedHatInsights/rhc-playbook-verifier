@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
+from subprocess import CalledProcessError
 from typing import Optional
 
 import rhc_playbook_lib as lib
@@ -60,9 +61,10 @@ def sign_play_digest(play_digest: bytes, key: pathlib.Path) -> bytes:
         digest_file = temp_path / "digest"
         digest_file.write_bytes(play_digest)
 
-        result = crypto.sign_file(digest_file, key)
-        if not result.ok:
-            raise RuntimeError(f"Could not sign the digest: {result}")
+        try:
+            crypto.sign_file(digest_file, key)
+        except CalledProcessError as err:
+            raise RuntimeError("Could not sign the digest") from err
         return (temp_path / "digest.asc").read_bytes()
 
 

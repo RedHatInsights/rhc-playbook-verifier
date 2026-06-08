@@ -7,6 +7,7 @@ import logging
 import pathlib
 import sys
 import tempfile
+from subprocess import CalledProcessError
 from typing import Any
 
 import yaml
@@ -161,11 +162,9 @@ def verify_play(play: dict, gpg_key: bytes) -> bytes:
         key_file.write_bytes(gpg_key)
 
         logger.info(f"Cryptographically verifying play '{play_name}'.")
-        result: crypto.GPGCommandResult = crypto.verify_gpg_signed_file(
-            digest_file, signature_file, key_file
-        )
-
-        if not result.ok:
+        try:
+            crypto.verify_gpg_signed_file(digest_file, signature_file, key_file)
+        except CalledProcessError as err:
             logger.error(
                 f"Play content failed to match its digest's signature: {serialized_play!r}."
             )
@@ -174,7 +173,7 @@ def verify_play(play: dict, gpg_key: bytes) -> bytes:
                 serialized_play=serialized_play,
                 digest=digest,
                 signature=signature,
-            )
+            ) from err
 
         return digest
 

@@ -203,11 +203,9 @@ class TestGetRevocationDigests(TestCase):
         """Test that validation failure raises an exception."""
         with ExitStack() as stack:
             gpg_tmp_dir = stack.enter_context(_keygen._generate_keys())
-            export_dir = stack.enter_context(TemporaryDirectory())
+            export_dir = Path(stack.enter_context(TemporaryDirectory()))
             _keygen._export_key_pair(gpg_tmp_dir, export_dir)
-            handle = stack.enter_context(
-                (Path(export_dir) / "key.public.gpg").open("rb")
-            )
+            handle = stack.enter_context((export_dir / "key.public.gpg").open("rb"))
             invalid_gpg_key = handle.read()
         with self.assertRaisesRegex(
             GPGValidationError, "Play digest does not match its signature"

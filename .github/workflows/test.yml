@@ -16,7 +16,7 @@ jobs:
           - "3.9"  # default RHEL 9 interpreter
           - "3.12"  # default RHEL 10 interpreter
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:

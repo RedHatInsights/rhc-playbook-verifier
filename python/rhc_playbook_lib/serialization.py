@@ -77,7 +77,7 @@ class Serializer:
             return "ordereddict()"
         result = "ordereddict(["
         result += ", ".join(
-            "('{key}', {value})".format(key=k, value=cls._obj(v))
+            "({key}, {value})".format(key=cls._str(k), value=cls._obj(v))
             for k, v in source.items()
         )
         result += "])"

@@ -8,7 +8,7 @@ on:
 
 jobs:
   pre-commit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # 26.04 lacks Python 3.9
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6

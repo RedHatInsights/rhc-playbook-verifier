@@ -8,7 +8,7 @@ on:
 
 jobs:
   unittest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # 26.04 lacks Python 3.9
     strategy:
       fail-fast: false
       matrix:
